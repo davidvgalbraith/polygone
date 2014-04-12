@@ -150,7 +150,6 @@ void myDisplay() {
 
 
   // Start drawing
-  circle(viewport.w / 2.0 , viewport.h / 2.0 , min(viewport.w, viewport.h) / 3.0);
 
   glFlush();
   glutSwapBuffers();					// swap buffers (we earlier set double buffer)
@@ -179,8 +178,93 @@ void subdividePatch(vector<vector<vector<double> > > patch, double step, vector<
   }
 }
 
-void beezer(vector<vector<vector<double> > > patch, double step, vector<vector<double> > toDraw) {
+vector<double> plus(vector<double> x, vector<double> y) {
+  vector<double> result;
+  result.push_back(x[0] + y[0]);
+  result.push_back(x[1] + y[1]);
+  result.push_back(x[2] + y[2]);
+  return result;
+}
 
+vector<double> times(vector<double> x, double y) {
+  vector<double> result;
+  result.push_back(x[0] * y);
+  result.push_back(x[1] * y);
+  result.push_back(x[2] * y);
+  return result;
+}
+
+vector<double> minus(vector<double> x, vector<double> y) {
+  vector<double> result;
+  result.push_back(x[0] - y[0]);
+  result.push_back(x[1] - y[1]);
+  result.push_back(x[2] - y[2]);
+  return result;
+}
+
+vector<double> cross(vector<double> u, vector<double> v) {
+  vector<double> result;
+  result.push_back(u[1] * v[2] - u[2] * v[1]);
+  result.push_back(u[2] * v[0] - u[0] * v[2]);
+  result.push_back(u[0] * v[1] - u[1] * v[0]);
+  return result;
+}
+
+//returns 2-vector of 3-vectors, first is point and second is derivative
+vector<vector<double> > beezercurve(vector<vector<double> > curve, double u) {
+  vector<double> a = plus(times(curve[0], 1-u), times(curve[1], u));
+  vector<double> b = plus(times(curve[1], 1-u), times(curve[2], u));
+  vector<double> c = plus(times(curve[2], 1-u), times(curve[3], u));
+  vector<double> d = plus(times(a, 1-u), times(b, u));
+  vector<double> e = plus(times(b, 1-u), times(c, u));
+  vector<double> p = plus(times(d, 1-u), times(e, u));
+  vector<double> dpdu = times(minus(e, d), 3);
+  vector<vector<double> > result;
+  result.push_back(p);
+  result.push_back(dpdu);
+  return result;
+}
+
+
+
+//interpolates the beezer patch, pushing point and surface normal to toDraw
+void beezerpatch(vector<vector<vector<double> > > patch, double u, double v, vector<vector<double> > toDraw) {
+  vector<vector<double> > ucurve;
+  vector<vector<double> > vcurve;
+  vcurve.push_back(beezercurve(patch[0], u)[0]);
+  vcurve.push_back(beezercurve(patch[1], u)[0]);
+  vcurve.push_back(beezercurve(patch[2], u)[0]);
+  vcurve.push_back(beezercurve(patch[3], u)[0]);
+  vector<vector<double> > col1;
+  vector<vector<double> > col2;
+  vector<vector<double> > col3;
+  vector<vector<double> > col4;
+  col1.push_back(patch[0][0]);
+  col1.push_back(patch[1][0]);
+  col1.push_back(patch[2][0]);
+  col1.push_back(patch[3][0]);
+  col2.push_back(patch[0][1]);
+  col2.push_back(patch[1][1]);
+  col2.push_back(patch[2][1]);
+  col2.push_back(patch[3][1]);
+  col3.push_back(patch[0][2]);
+  col3.push_back(patch[1][2]);
+  col3.push_back(patch[2][2]);
+  col3.push_back(patch[3][2]);
+  col4.push_back(patch[0][3]);
+  col4.push_back(patch[1][3]);
+  col4.push_back(patch[2][3]);
+  col4.push_back(patch[3][3]);
+  ucurve.push_back(beezercurve(col1, u)[0]);
+  ucurve.push_back(beezercurve(col2, u)[0]);
+  ucurve.push_back(beezercurve(col3, u)[0]);
+  ucurve.push_back(beezercurve(col4, u)[0]);
+  vector<vector<double> > pdpdv = beezercurve(vcurve, v);
+  vector<vector<double> > pdpdu = beezercurve(ucurve, u);
+  vector<double> n = cross(pdpdv[1], pdpdu[1]);
+  toDraw.push_back(pdpdu[0]);
+  toDraw.push_back(n);
+}
 
 //****************************************************
 // the usual stuff, nothing exciting here
