@@ -1,3 +1,6 @@
+//much openGL code ripped from tutorial at http://openglbook.com/the-book/
+#include <GL/glew.h>
+#include <GL/freeglut.h>
 
 #include <vector>
 #include <iostream>
@@ -23,8 +26,45 @@
 #include <iostream>
 #include <fstream>
 
+
+
 #define PI 3.14159265  // Should be used from mathlib
 inline float sqr(float x) { return x*x; }
+int vertex, drawn;
+GLuint
+VertexShaderId,
+  FragmentShaderId,
+  ProgramId,
+  VaoId,
+  VboId,
+  ColorBufferId;
+
+const GLchar* VertexShader = {
+  "#version 400\n"\
+ 
+  "layout(location=0) in vec4 in_Position;\n"\
+  "layout(location=1) in vec4 in_Color;\n"\
+  "out vec4 ex_Color;\n"\
+ 
+  "void main(void)\n"\
+  "{\n"\
+  "   gl_Position = in_Position;\n"\
+  "   ex_Color = in_Color;\n"\
+  "}\n"
+};
+
+const GLchar* FragmentShader = {
+  "#version 400\n"\
+ 
+  "in vec4 ex_Color;\n"\
+  "out vec4 out_Color;\n"\
+ 
+  "void main(void)\n"\
+  "{\n"\
+  "   out_Color = ex_Color;\n"\
+  "}\n"
+};
+
 
 using namespace std;
 
@@ -35,8 +75,8 @@ using namespace std;
 class Viewport;
 
 class Viewport {
-  public:
-    int w, h; // width and height
+public:
+  int w, h; // width and height
 };
 
 
@@ -89,55 +129,7 @@ void setPixel(int x, int y, GLfloat r, GLfloat g, GLfloat b) {
 
 //****************************************************
 // Draw a filled circle.  
-//****************************************************
-
-
-void circle(float centerX, float centerY, float radius) {
-  // Draw inner circle
-  glBegin(GL_POINTS);
-
-  // We could eliminate wasted work by only looping over the pixels
-  // inside the sphere's radius.  But the example is more clear this
-  // way.  In general drawing an object by loopig over the whole
-  // screen is wasteful.
-
-  int i,j;  // Pixel indices
-
-  int minI = max(0,(int)floor(centerX-radius));
-  int maxI = min(viewport.w-1,(int)ceil(centerX+radius));
-
-  int minJ = max(0,(int)floor(centerY-radius));
-  int maxJ = min(viewport.h-1,(int)ceil(centerY+radius));
-
-
-
-  for (i=0;i<viewport.w;i++) {
-    for (j=0;j<viewport.h;j++) {
-
-      // Location of the center of pixel relative to center of sphere
-      float x = (i+0.5-centerX);
-      float y = (j+0.5-centerY);
-
-      float dist = sqrt(sqr(x) + sqr(y));
-
-      if (dist<=radius) {
-
-        // This is the front-facing Z coordinate
-        float z = sqrt(radius*radius-dist*dist);
-
-        setPixel(i,j, 1.0, 0.0, 0.0);
-
-        // This is amusing, but it assumes negative color values are treated reasonably.
-        // setPixel(i,j, x/radius, y/radius, z/radius );
-      }
-
-
-    }
-  }
-
-
-  glEnd();
-}
+//*********************************
 //****************************************************
 // function that does the actual drawing of stuff
 //***************************************************
@@ -150,6 +142,7 @@ void myDisplay() {
 
 
   // Start drawing
+  glDrawArrays(GL_LINES, 0, 3);
 
   glFlush();
   glutSwapBuffers();					// swap buffers (we earlier set double buffer)
@@ -167,18 +160,36 @@ void printvectarray(vector<vector<vector<double> > > x) {
   }
 }
 
-void subdividePatch(vector<vector<vector<double> > > patch, double step, vector<vector<double> > toDraw) {
+void printvectvect(vector<vector<double> > x) {
+  for (int k = 0; k < x.size(); k++) {
+    cout << "\n" << k << ": ";
+    for (int j = 0; j < x[k].size(); j++) {
+      cout << x[k][j] << " ";
+    }
+  }
+}
+vector<double> pluss(vector<double> x, vector<double> y);
+vector<double> times(vector<double> x, double y);
+vector<double> minuss(vector<double> x, vector<double> y);
+vector<double> cross(vector<double> u, vector<double> v);
+vector<double> beezerpatch(vector<vector<vector<double> > > patch, double u, double v);
+
+vector<vector<double> > subdividePatch(vector<vector<vector<double> > > patch, double step) {
+  vector<vector<double> > toDraw;
   int numdiv = (1 + step/10) / step;
   for (int iu = 0; iu <= numdiv; iu++) {
     double u = iu * step;
     for (int iv = 0; iv <= numdiv; iv++) {
       double v = iv * step;
-      beezer(patch, u, v, toDraw);
+      vector<double> carter = beezerpatch(patch, u, v);
+      //cout << "\n" << u << ", " << v << ": " << carter[0] << " " << carter[1] << " " << carter[2];
+      toDraw.push_back(carter);
     }
   }
-}
+  return toDraw;
 
-vector<double> plus(vector<double> x, vector<double> y) {
+}
+vector<double> pluss(vector<double> x, vector<double> y) {
   vector<double> result;
   result.push_back(x[0] + y[0]);
   result.push_back(x[1] + y[1]);
@@ -194,7 +205,7 @@ vector<double> times(vector<double> x, double y) {
   return result;
 }
 
-vector<double> minus(vector<double> x, vector<double> y) {
+vector<double> minuss(vector<double> x, vector<double> y) {
   vector<double> result;
   result.push_back(x[0] - y[0]);
   result.push_back(x[1] - y[1]);
@@ -212,13 +223,13 @@ vector<double> cross(vector<double> u, vector<double> v) {
 
 //returns 2-vector of 3-vectors, first is point and second is derivative
 vector<vector<double> > beezercurve(vector<vector<double> > curve, double u) {
-  vector<double> a = plus(times(curve[0], 1-u), times(curve[1], u));
-  vector<double> b = plus(times(curve[1], 1-u), times(curve[2], u));
-  vector<double> c = plus(times(curve[2], 1-u), times(curve[3], u));
-  vector<double> d = plus(times(a, 1-u), times(b, u));
-  vector<double> e = plus(times(b, 1-u), times(c, u));
-  vector<double> p = plus(times(d, 1-u), times(e, u));
-  vector<double> dpdu = times(minus(e, d), 3);
+  vector<double> a = pluss(times(curve[0], 1-u), times(curve[1], u));
+  vector<double> b = pluss(times(curve[1], 1-u), times(curve[2], u));
+  vector<double> c = pluss(times(curve[2], 1-u), times(curve[3], u));
+  vector<double> d = pluss(times(a, 1-u), times(b, u));
+  vector<double> e = pluss(times(b, 1-u), times(c, u));
+  vector<double> p = pluss(times(d, 1-u), times(e, u));
+  vector<double> dpdu = times(minuss(e, d), 3);
   vector<vector<double> > result;
   result.push_back(p);
   result.push_back(dpdu);
@@ -227,8 +238,9 @@ vector<vector<double> > beezercurve(vector<vector<double> > curve, double u) {
 
 
 
-//interpolates the beezer patch, pushing point and surface normal to toDraw
-void beezerpatch(vector<vector<vector<double> > > patch, double u, double v, vector<vector<double> > toDraw) {
+//interpolates the beezer patch, returning the 6-vector of the point and surface normal
+vector<double> beezerpatch(vector<vector<vector<double> > > patch, double u, double v) {
+  vector<double> toDraw;
   vector<vector<double> > ucurve;
   vector<vector<double> > vcurve;
   vcurve.push_back(beezercurve(patch[0], u)[0]);
@@ -255,15 +267,20 @@ void beezerpatch(vector<vector<vector<double> > > patch, double u, double v, vec
   col4.push_back(patch[1][3]);
   col4.push_back(patch[2][3]);
   col4.push_back(patch[3][3]);
-  ucurve.push_back(beezercurve(col1, u)[0]);
-  ucurve.push_back(beezercurve(col2, u)[0]);
-  ucurve.push_back(beezercurve(col3, u)[0]);
-  ucurve.push_back(beezercurve(col4, u)[0]);
+  ucurve.push_back(beezercurve(col1, v)[0]);
+  ucurve.push_back(beezercurve(col2, v)[0]);
+  ucurve.push_back(beezercurve(col3, v)[0]);
+  ucurve.push_back(beezercurve(col4, v)[0]);
   vector<vector<double> > pdpdv = beezercurve(vcurve, v);
   vector<vector<double> > pdpdu = beezercurve(ucurve, u);
   vector<double> n = cross(pdpdv[1], pdpdu[1]);
-  toDraw.push_back(pdpdu[0]);
-  toDraw.push_back(n);
+  toDraw.push_back(pdpdu[0][0]);
+  toDraw.push_back(pdpdu[0][1]);
+  toDraw.push_back(pdpdu[0][2]);
+  toDraw.push_back(n[0]);
+  toDraw.push_back(n[1]);
+  toDraw.push_back(n[2]);
+  return toDraw;
 }
 
 //****************************************************
@@ -272,10 +289,9 @@ void beezerpatch(vector<vector<vector<double> > > patch, double u, double v, vec
 int main(int argc, char *argv[]) {
   ifstream file(argv[1]);
   int patches;
-  //each element in toDraw contains two vectors, the first is a point and the second is that point's surface normal
+  //each even element in toDraw is a point and the odds are that point's surface normal
   vector<vector<double> > toDraw;
-  if (file.is_open())
-  {
+  if (file.is_open()) {
     file >> patches;
     for (int patchno = 0; patchno < patches; patchno++) {
       vector<vector<vector<double> > > patch;
@@ -292,9 +308,29 @@ int main(int argc, char *argv[]) {
 	}
 	patch.push_back(row);
       }
-      subdividePatch(patch, 0.01, toDraw);
+      vector<vector<double> > betterDraw = subdividePatch(patch, 0.1);
+      for (int better = 0; better < betterDraw.size(); better++) {
+	vector<double> poinoint;
+	poinoint.push_back(betterDraw[better][0]);
+	poinoint.push_back(betterDraw[better][1]);
+	poinoint.push_back(betterDraw[better][2]);
+	poinoint.push_back(1);
+	toDraw.push_back(poinoint);
+      }
     }
     file.close();
+  }
+  printvectvect(toDraw);
+  cout << "\n";
+  //return 2;
+  GLfloat *vertices = new GLfloat[toDraw.size()];
+  vertex = 0;
+  for (int aardvark = 0; aardvark < toDraw.size(); aardvark += 1) {
+    cout << "\ntodrawsize: " << toDraw[aardvark].size() << "  aardvark " << aardvark << "   vertex " << vertex;
+    vertices[vertex++] = toDraw[aardvark][0];
+    vertices[vertex++] = toDraw[aardvark][1];
+    vertices[vertex++] = toDraw[aardvark][2];
+    vertices[vertex++] = 1.0;
   }
   //This initializes glut
   glutInit(&argc, argv);
@@ -313,10 +349,19 @@ int main(int argc, char *argv[]) {
 
   initScene();							// quick function to set up scene
 
+  glGenVertexArrays(1, &VaoId);
+  glBindVertexArray(VaoId);
+  
+  glGenBuffers(1, &VboId);
+  glBindBuffer(GL_ARRAY_BUFFER, VboId);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+  glEnableVertexAttribArray(0);
+
   glutDisplayFunc(myDisplay);				// function to run when its time to draw something
   glutReshapeFunc(myReshape);				// function to run when the window gets resized
 
-  //glutMainLoop();							// infinite loop that will keep drawing and resizing
+  glutMainLoop();							// infinite loop that will keep drawing and resizing
   // and whatever else
 
   return 0;
