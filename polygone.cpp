@@ -29,22 +29,19 @@
 using namespace std;
 
 inline float sqr(float x) { return x*x; }
-int vertex, drawn;
-//has one vector element for each patch, of which the elements are 6-vectors containing surface points and normals
-vector<vector<vector<vector<float> > > > patches;
-
-//****************************************************
-// Some Classes
-//****************************************************
 class Viewport;
 class Viewport {
 public:
   int w, h; // width and height
 };
+int vertex, drawn;
+//Holds the patches
+vector<vector<vector<vector<float> > > > patches;
+//What shading?
+int flat = 1;
+//uniform shading step
 float step;
-//****************************************************
-// Global Variables
-//****************************************************
+//useless crap
 Viewport viewport;
 vector<float> pluss(vector<float> x, vector<float> y);
 vector<float> times(vector<float> x, float y);
@@ -70,11 +67,7 @@ void myReshape(int w, int h) {
   viewport.w = w;
   viewport.h = h;
   glViewport (0,0,viewport.w,viewport.h);
-  //glMatrixMode(GL_PROJECTION);
-  //glLoadIdentity();
-  //gluOrtho2D(0, viewport.w, 0, viewport.h);
 }
-
 
 //****************************************************
 // function that does the actual drawing of stuff
@@ -83,12 +76,35 @@ void myDisplay() {
   glClear(GL_COLOR_BUFFER_BIT);				// clear the color buffer
   glMatrixMode(GL_MODELVIEW);			        // indicate we are specifying camera transformations
   glLoadIdentity();
-  gluLookAt(.5, 0, 0, 0, 1.5, 1, 0, 1, 0);
+  gluLookAt(0.5, 0.5, -0.9, 0.5, 0.5, 0, 0, 1, 0);
   // Start drawing
-  glColor3f(1.0f, 1.0f, 1.0f);
+  if (flat) {
+    glColor3f(1.0f, 1.0f, 1.0f);
+  } else {
+    glShadeModel(GL_SMOOTH);
+    //copied from http://www.cs.uml.edu/~haim/teaching/cg/resources/presentations/427/AngelCG20_shading_OpenGL.pdf.
+    GLfloat diffuse0[]={1.0, 0.0, 0.0, 1.0};
+    GLfloat ambient0[]={1.0, 0.0, 0.0, 1.0};
+    GLfloat specular0[]={1.0, 1.0, 1.0, 1.0};
+    GLfloat light0_pos[]={0.5, 0.0, 0.0, 1.0};
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+    glLightfv(GL_LIGHT0, GL_POSITION, light0_pos);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient0);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse0);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, specular0);
+    GLfloat ambient[] = {1.0, 0.0, 0.0, 1.0};
+    GLfloat diffuse[] = {1.0, 0.8, 0.0, 1.0};
+    GLfloat specular[] = {1.0, 1.0, 1.0, 1.0};
+    GLfloat shine = 100.0;
+    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shine); 
+  }
   glPointSize(5.0f);
-  for (int patch = 0; patch < 2; patch++) {
-  //for (int patch = 1; patch < patches.size(); patch++) {
+  //for (int patch = 0; patch < patches.size(); patch++) {
+  for (int patch = 0; patch < 1; patch++) {
     vector<vector<vector<float> > > currPatch = patches[patch];
     int numdiv = (1 + step/10) / step;
     for (int iu = 0; iu < numdiv; iu++) {
@@ -99,16 +115,18 @@ void myDisplay() {
 	vector<float> interp2 = beezerpatch(currPatch, u+step, v);
 	vector<float> interp3 = beezerpatch(currPatch, u, v+step);
 	vector<float> interp4 = beezerpatch(currPatch, u+step, v+step);
-	cout << "One\n";
+	/*cout << "One\n";
 	printvect(interp1);
 	cout << "Two\n";
 	printvect(interp2);
 	cout << "Three\n";
 	printvect(interp3);
 	cout << "Four\n";
-	printvect(interp4);
+	printvect(interp4);*/
+	glBegin(GL_POINTS);
 	//glNormal3f(interp1[3], interp1[4], interp1[5]);
-	glBegin(GL_QUADS);	
+	cout << "Top:\n";
+	printvect(interp1);
 	glVertex3f(interp1[0], interp1[1], interp1[2]);
 	glVertex3f(interp2[0], interp2[1], interp2[2]);
 	glVertex3f(interp4[0], interp4[1], interp4[2]);
@@ -124,10 +142,23 @@ void myDisplay() {
 	glVertex3f(interp2[0], interp2[1], interp2[2]);
 	glVertex3f(interp3[0], interp3[1], interp3[2]);
 	glEnd();*/
+	/*glBegin(GL_LINES);
+	printvect(interp1);
+	cout << "\nBot ^^\n";
+	glVertex3f(interp1[0], interp1[1], interp1[2]);
+	glVertex3f(interp1[3] + interp1[0], interp1[4] + interp1[1], interp1[5] + interp1[2]);
+	glVertex3f(interp2[0], interp2[1], interp2[2]);
+	glVertex3f(interp2[3] + interp2[0], interp2[4] + interp2[1], interp2[5] + interp2[2]);
+	glVertex3f(interp3[0], interp3[1], interp3[2]);
+	glVertex3f(interp3[3] + interp3[0], interp3[4] + interp3[1], interp3[5] + interp3[2]);	
+	glVertex3f(interp4[0], interp4[1], interp4[2]);
+	glVertex3f(interp4[3] + interp4[0], interp4[4] + interp4[1], interp4[5] + interp4[2]);
+	//glVertex3f(.5, 0, 0);
+	glEnd();*/
       }
     }
   }
-  //glEnd();
+  glEnd();
   glFlush();
   glutSwapBuffers();					// swap buffers (we earlier set float buffer)
 }
@@ -207,9 +238,6 @@ vector<float> beezerpatch(vector<vector<vector<float> > > patch, float u, float 
   return draw;
 }
 
-//****************************************************
-// the usual stuff, nothing exciting here
-//****************************************************
 int main(int argc, char *argv[]) {
   ifstream file(argv[1]);
   step = atof(argv[2]);
@@ -290,6 +318,8 @@ vector<float> cross(vector<float> u, vector<float> v) {
 }
 
 vector<float> normalize(vector<float> v) {
+  //  cout << "normalizen: ";
+  //printvect(v);
   float norm;
   vector<float> result;
   for (int k = 0; k < v.size(); k++) {
@@ -297,10 +327,14 @@ vector<float> normalize(vector<float> v) {
   }
   if (norm == 0) {
     cout << "Tragedy: nomrmalized a zero";
+    norm = 1;
   }
+  norm = sqrt(norm);
   result.push_back(v[0] / norm);
   result.push_back(v[1] / norm);
   result.push_back(v[2] / norm);
+  //cout << "Normalizeded ";
+  //printvect(result);
   return result;
 }
 
