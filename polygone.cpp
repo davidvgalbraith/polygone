@@ -24,6 +24,7 @@
 #include <math.h>
 #include <iostream>
 #include <fstream>
+#include <string.h>
 #define PI 3.14159265  // Should be used from mathlib
 
 using namespace std;
@@ -53,6 +54,9 @@ void printvectvect(vector<vector<float> > x);
 void printvectarray(vector<vector<vector<float> > > x);
 vector<float> normalize(vector<float> v);
 GLfloat* floady(vector<float> x);
+int isEqual(char *s, char *t, int len);
+void keyPressed (unsigned char key, int x, int y);
+void arrows(int key, int x, int y);
 
 //****************************************************
 // Simple init function
@@ -74,7 +78,75 @@ void myReshape(int w, int h) {
 // function that does the actual drawing of stuff
 //***************************************************
 
-void myDisplay() {
+void uniformDisplay() {
+  glClear(GL_COLOR_BUFFER_BIT);				// clear the color buffer
+  glMatrixMode(GL_MODELVIEW);			        // indicate we are specifying camera transformations
+  glLoadIdentity();
+  gluLookAt(.2, .1, 0.5, 0.5, 0.5, 0.7, 0, 0, 1);
+  // Start drawing
+  if (flat) {
+    // glColor3f(1.0f, 1.0f, 1.0f);
+    glShadeModel(GL_FLAT);
+  } else {
+    glShadeModel(GL_SMOOTH);
+    //copied from http://www.cs.uml.edu/~haim/teaching/cg/resources/presentations/427/AngelCG20_shading_OpenGL.pdf.
+    GLfloat diffuse0[]={1.0, 0.0, 0.0, 1.0};
+    GLfloat ambient0[]={0.0, 0.0, 0.0, 1.0};
+    GLfloat specular0[]={1.0, 1.0, 1.0, 1.0};
+    GLfloat light0_pos[]={0.0, 0.0, 1.0, 1.0};
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+    glLightfv(GL_LIGHT0, GL_POSITION, light0_pos);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient0);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse0);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, specular0);
+    GLfloat ambient[] = {1.0, 0.0, 0.0, 1.0};
+    GLfloat diffuse[] = {1.0, 0.8, 0.0, 1.0};
+    GLfloat specular[] = {1.0, 1.0, 1.0, 1.0};
+    GLfloat shine = 100.0;
+    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shine); 
+  }
+  glPointSize(50.0f);
+  //glBegin(GL_POINTS);
+  //glVertex3f(0, 0, 0);
+  //glEnd();
+  for (int patch = 0; patch < patches.size(); patch++) {
+    //for (int patch = 0; patch < 1; patch++) {
+    vector<vector<vector<float> > > currPatch = patches[patch];
+    int numdiv = (1 + step/10) / step;
+    for (int iu = 0; iu < numdiv; iu++) {
+      float u = iu * step;
+      for (int iv = 0; iv < numdiv; iv++) {
+	float v = iv * step;
+	vector<vector<float> >interp1 = beezerpatch(currPatch, u, v);
+	vector<vector<float> >interp2 = beezerpatch(currPatch, u+step, v);
+	vector<vector<float> >interp3 = beezerpatch(currPatch, u, v+step);
+	vector<vector<float> >interp4 = beezerpatch(currPatch, u+step, v+step);
+	glBegin(GL_QUADS);
+	glNormal3fv(floady(interp1[1]));
+	glVertex3fv(floady(interp1[0]));
+	glNormal3fv(floady(interp2[1]));
+	glVertex3fv(floady(interp2[0]));
+	glNormal3fv(floady(interp4[1]));
+	glVertex3fv(floady(interp4[0]));
+	glNormal3fv(floady(interp3[1]));
+	glVertex3fv(floady(interp3[0]));
+	glEnd();
+	/*glBegin(GL_LINES);
+	  glVertex3fv(floady(interp1[0]));
+	  glVertex3fv(floady(pluss(interp1[0], times(interp1[1], 0.1))));
+	  glEnd();*/
+      }
+    }
+  }
+  glFlush();
+  glutSwapBuffers();					// swap buffers (we earlier set float buffer)
+}
+
+void adaptiveDisplay() {
   glClear(GL_COLOR_BUFFER_BIT);				// clear the color buffer
   glMatrixMode(GL_MODELVIEW);			        // indicate we are specifying camera transformations
   glLoadIdentity();
@@ -121,14 +193,6 @@ void myDisplay() {
 	vector<vector<float> >interp2 = beezerpatch(currPatch, u+step, v);
 	vector<vector<float> >interp3 = beezerpatch(currPatch, u, v+step);
 	vector<vector<float> >interp4 = beezerpatch(currPatch, u+step, v+step);
-	cout << "One\n";
-	printvect(interp1[0]);
-	/*cout << "Two\n";
-	  printvect(interp2);
-	  cout << "Three\n";
-	  printvect(interp3);
-	  cout << "Four\n";
-	  printvect(interp4);*/
 	glBegin(GL_QUADS);
 	glNormal3fv(floady(interp1[1]));
 	glVertex3fv(floady(interp1[0]));
@@ -215,6 +279,15 @@ vector<vector<float> >beezerpatch(vector<vector<vector<float> > > patch, float u
 }
 
 int main(int argc, char *argv[]) {
+  int adaptive = 0;
+  if (argc > 3) {
+    if (strlen(argv[3]) == 2) {
+      if (isEqual(argv[3], "-a", 2)) {
+	adaptive = 1;
+      }
+    }
+  }
+  //cout << adaptive << "\n";
   ifstream file(argv[1]);
   step = atof(argv[2]);
   int paches;
@@ -253,13 +326,38 @@ int main(int argc, char *argv[]) {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   //glOrtho(-1, 1, -1, 1, -1, 1);
-  initScene();							// quick function to set up scene
-  glutDisplayFunc(myDisplay);				// function to run when its time to draw something
+  initScene();
+  if (adaptive) {						// quick function to set up scene
+    glutDisplayFunc(adaptiveDisplay);
+  } else {
+        glutDisplayFunc(uniformDisplay); // function to run when its time to draw something
+  }
   glutReshapeFunc(myReshape);				// function to run when the window gets resized
+  glutKeyboardFunc(keyPressed); // Tell GLUT to use the method "keyPressed" for key presses (http://www.swiftless.com/tutorials/opengl/keyboard.html)
+  glutSpecialFunc(arrows);
   glutMainLoop();							// infinite loop that will keep drawing and resizing
   // and whatever else
   return 0;
 }
+
+void arrows(int key, int x, int y) {
+  if (key == GLUT_KEY_UP) {
+  }
+  if (key == GLUT_KEY_DOWN) {
+  } 
+  if (key == GLUT_KEY_LEFT) {
+  } 
+  if (key == GLUT_KEY_RIGHT) {
+  }
+}
+
+void keyPressed (unsigned char key, int x, int y) {  
+  cout << key << "\n";
+  if (key == 's') {
+    flat = flat ^ 1;
+    glutPostRedisplay();
+  }
+}  
 
 vector<float> pluss(vector<float> x, vector<float> y) {
   vector<float> result;
@@ -348,4 +446,13 @@ void printvect(vector<float> x) {
     cout << x[k] << " ";
   }
   cout << "\n";
+}
+
+int isEqual(char *s, char *t, int len) {
+  for (int k = 0; k < len; k++) {
+    if (s[k] != t[k]) {
+      return 0;
+    }
+  }
+  return 1;
 }
