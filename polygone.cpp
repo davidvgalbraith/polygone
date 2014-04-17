@@ -80,7 +80,7 @@ void myDisplay() {
   glLoadIdentity();
   gluLookAt(.2, .1, 0.5, 0.5, 0.5, 0.7, 0, 0, 1);
   
-// Start drawing
+  // Start drawing
   if (flat) {
     glColor3f(1.0f, 1.0f, 1.0f);
   } else {
@@ -110,7 +110,7 @@ void myDisplay() {
   //glVertex3f(0, 0, 0);
   //glEnd();
   for (int patch = 0; patch < patches.size(); patch++) {
-  //for (int patch = 0; patch < 1; patch++) {
+    //for (int patch = 0; patch < 1; patch++) {
     vector<vector<vector<float> > > currPatch = patches[patch];
     int numdiv = (1 + step/10) / step;
     for (int iu = 0; iu < numdiv; iu++) {
@@ -124,22 +124,25 @@ void myDisplay() {
 	cout << "One\n";
 	printvect(interp1[0]);
 	/*cout << "Two\n";
-	printvect(interp2);
-	cout << "Three\n";
-	printvect(interp3);
-	cout << "Four\n";
-	printvect(interp4);*/
+	  printvect(interp2);
+	  cout << "Three\n";
+	  printvect(interp3);
+	  cout << "Four\n";
+	  printvect(interp4);*/
 	glBegin(GL_QUADS);
 	glNormal3fv(floady(interp1[1]));
 	glVertex3fv(floady(interp1[0]));
+	glNormal3fv(floady(interp2[1]));
 	glVertex3fv(floady(interp2[0]));
+	glNormal3fv(floady(interp4[1]));
 	glVertex3fv(floady(interp4[0]));
+	glNormal3fv(floady(interp3[1]));
 	glVertex3fv(floady(interp3[0]));
 	glEnd();
 	/*glBegin(GL_LINES);
-	glVertex3fv(floady(interp1[0]));
-	glVertex3fv(floady(pluss(interp1[0], times(interp1[1], 0.1))));
-	glEnd();*/
+	  glVertex3fv(floady(interp1[0]));
+	  glVertex3fv(floady(pluss(interp1[0], times(interp1[1], 0.1))));
+	  glEnd();*/
       }
     }
   }
@@ -236,7 +239,7 @@ int main(int argc, char *argv[]) {
     }
     file.close();
   }
-   //This initializes glut
+  //This initializes glut
   glutInit(&argc, argv);
   //This tells glut to use a float-buffered window with red, green, and blue channels 
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
