@@ -78,7 +78,7 @@ void myDisplay() {
   glClear(GL_COLOR_BUFFER_BIT);				// clear the color buffer
   glMatrixMode(GL_MODELVIEW);			        // indicate we are specifying camera transformations
   glLoadIdentity();
-  gluLookAt(0.1, 0, 0.5, 0.5, 0.5, 0.7, 0, 0, 1);
+  gluLookAt(.2, .1, 0.5, 0.5, 0.5, 0.7, 0, 0, 1);
   
 // Start drawing
   if (flat) {
@@ -130,7 +130,7 @@ void myDisplay() {
 	cout << "Four\n";
 	printvect(interp4);*/
 	glBegin(GL_QUADS);
-	//glNormal3f(interp1[3], interp1[4], interp1[5]);
+	glNormal3fv(floady(interp1[1]));
 	glVertex3fv(floady(interp1[0]));
 	glVertex3fv(floady(interp2[0]));
 	glVertex3fv(floady(interp4[0]));
