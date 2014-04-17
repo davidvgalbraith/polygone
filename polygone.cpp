@@ -40,6 +40,8 @@ int vertex, drawn;
 vector<vector<vector<vector<float> > > > patches;
 //What shading?
 int flat = 0;
+
+int wireframe = 0;
 //uniform shading step
 float step;
 //useless crap
@@ -125,7 +127,19 @@ void uniformDisplay() {
 	vector<vector<float> >interp2 = beezerpatch(currPatch, u+step, v);
 	vector<vector<float> >interp3 = beezerpatch(currPatch, u, v+step);
 	vector<vector<float> >interp4 = beezerpatch(currPatch, u+step, v+step);
-	glBegin(GL_QUADS);
+	if (wireframe) {
+	  glBegin(GL_LINES);
+	  glNormal3fv(floady(interp1[1]));
+	  glVertex3fv(floady(interp1[0]));
+	  glNormal3fv(floady(interp3[1]));
+	  glVertex3fv(floady(interp3[0]));
+	  glNormal3fv(floady(interp2[1]));
+	  glVertex3fv(floady(interp2[0]));
+	  glNormal3fv(floady(interp4[1]));
+	  glVertex3fv(floady(interp4[0]));
+	} else {
+	  glBegin(GL_QUADS);
+	}
 	glNormal3fv(floady(interp1[1]));
 	glVertex3fv(floady(interp1[0]));
 	glNormal3fv(floady(interp2[1]));
@@ -352,10 +366,19 @@ void arrows(int key, int x, int y) {
 }
 
 void keyPressed (unsigned char key, int x, int y) {  
-  cout << key << "\n";
   if (key == 's') {
     flat = flat ^ 1;
     glutPostRedisplay();
+  }
+  if (key == 'w') {
+    wireframe = wireframe ^ 1;
+    glutPostRedisplay();
+  }
+  if (key == '+') {
+    //zoomm in
+  }
+  if (key == '-') {
+    //zoom out
   }
 }  
 
