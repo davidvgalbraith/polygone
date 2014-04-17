@@ -47,31 +47,33 @@ vector<float> pluss(vector<float> x, vector<float> y);
 vector<float> times(vector<float> x, float y);
 vector<float> minuss(vector<float> x, vector<float> y);
 vector<float> cross(vector<float> u, vector<float> v);
-vector<float> beezerpatch(vector<vector<vector<float> > > patch, float u, float v);
+vector<vector<float> >beezerpatch(vector<vector<vector<float> > > patch, float u, float v);
 void printvect(vector<float> x);
 void printvectvect(vector<vector<float> > x);
 void printvectarray(vector<vector<vector<float> > > x);
 vector<float> normalize(vector<float> v);
+GLfloat* floady(vector<float> x);
 
 //****************************************************
 // Simple init function
 //****************************************************
+
 void initScene(){
   // Nothing to do here for this simple example.
 }
-
 //****************************************************
 // reshape viewport if the window is resized
 //****************************************************
+
 void myReshape(int w, int h) {
   viewport.w = w;
   viewport.h = h;
   glViewport (0,0,viewport.w,viewport.h);
 }
-
 //****************************************************
 // function that does the actual drawing of stuff
 //***************************************************
+
 void myDisplay() {
   glClear(GL_COLOR_BUFFER_BIT);				// clear the color buffer
   glMatrixMode(GL_MODELVIEW);			        // indicate we are specifying camera transformations
@@ -111,10 +113,10 @@ void myDisplay() {
       float u = iu * step;
       for (int iv = 0; iv < numdiv; iv++) {
 	float v = iv * step;
-	vector<float> interp1 = beezerpatch(currPatch, u, v);
-	vector<float> interp2 = beezerpatch(currPatch, u+step, v);
-	vector<float> interp3 = beezerpatch(currPatch, u, v+step);
-	vector<float> interp4 = beezerpatch(currPatch, u+step, v+step);
+	vector<vector<float> >interp1 = beezerpatch(currPatch, u, v);
+	vector<vector<float> >interp2 = beezerpatch(currPatch, u+step, v);
+	vector<vector<float> >interp3 = beezerpatch(currPatch, u, v+step);
+	vector<vector<float> >interp4 = beezerpatch(currPatch, u+step, v+step);
 	/*cout << "One\n";
 	printvect(interp1);
 	cout << "Two\n";
@@ -125,12 +127,10 @@ void myDisplay() {
 	printvect(interp4);*/
 	glBegin(GL_POINTS);
 	//glNormal3f(interp1[3], interp1[4], interp1[5]);
-	cout << "Top:\n";
-	printvect(interp1);
-	glVertex3f(interp1[0], interp1[1], interp1[2]);
-	glVertex3f(interp2[0], interp2[1], interp2[2]);
-	glVertex3f(interp4[0], interp4[1], interp4[2]);
-	glVertex3f(interp3[0], interp3[1], interp3[2]);
+	glVertex3fv(floady(interp1[0]));
+	glVertex3fv(floady(interp2[0]));
+	glVertex3fv(floady(interp4[0]));
+	glVertex3fv(floady(interp3[0]));
 	glEnd();
 	/*glBegin(GL_LINES);
 	glVertex3f(interp1[0], interp1[1], interp1[2]);
@@ -163,19 +163,12 @@ void myDisplay() {
   glutSwapBuffers();					// swap buffers (we earlier set float buffer)
 }
 
-vector<vector<float> > subdividePatch(vector<vector<vector<float> > > patch, float step) {
-  vector<vector<float> > draw;
-  int numdiv = (1 + step/10) / step;
-  for (int iu = 0; iu <= numdiv; iu++) {
-    float u = iu * step;
-    for (int iv = 0; iv <= numdiv; iv++) {
-      float v = iv * step;
-      vector<float> carter = beezerpatch(patch, u, v);
-      //cout << "\n" << u << ", " << v << ": " << carter[0] << " " << carter[1] << " " << carter[2];
-      draw.push_back(carter);
-    }
-  }
-  return draw;
+GLfloat* floady(vector<float> x) {
+  GLfloat * ret = (GLfloat*) malloc(3 * sizeof(GLfloat));;
+  ret[0] = x[0];
+  ret[1] = x[1];
+  ret[2] = x[2];
+  return ret;
 }
 
 //returns 2-vector of 3-vectors, first is point and second is derivative
@@ -194,8 +187,8 @@ vector<vector<float> > beezercurve(vector<vector<float> > curve, float u) {
 }
 
 //interpolates the beezer patch, returning the 6-vector of the point and surface normal
-vector<float> beezerpatch(vector<vector<vector<float> > > patch, float u, float v) {
-  vector<float> draw;
+vector<vector<float> >beezerpatch(vector<vector<vector<float> > > patch, float u, float v) {
+  vector<vector<float> > draw;
   vector<vector<float> > ucurve;
   vector<vector<float> > vcurve;
   vcurve.push_back(beezercurve(patch[0], u)[0]);
@@ -229,12 +222,8 @@ vector<float> beezerpatch(vector<vector<vector<float> > > patch, float u, float 
   vector<vector<float> > pdpdv = beezercurve(vcurve, v);
   vector<vector<float> > pdpdu = beezercurve(ucurve, u);
   vector<float> n = normalize(cross(pdpdv[1], pdpdu[1]));
-  draw.push_back(pdpdu[0][0]);
-  draw.push_back(pdpdu[0][1]);
-  draw.push_back(pdpdu[0][2]);
-  draw.push_back(n[0]);
-  draw.push_back(n[1]);
-  draw.push_back(n[2]);
+  draw.push_back(pdpdu[0]);
+  draw.push_back(n);
   return draw;
 }
 
