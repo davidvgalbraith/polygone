@@ -28,7 +28,7 @@
 #define PI 3.14159265  // Should be used from mathlib
 
 using namespace std;
-
+//camera crap copeid from Rob Bateman http://nccastaff.bournemouth.ac.uk/jmacey/RobTheBloke/www/opengl_programming.html#4
 inline float sqr(float x) { return x*x; }
 class Viewport;
 class Viewport {
@@ -40,8 +40,21 @@ int vertex, drawn;
 vector<vector<vector<vector<float> > > > patches;
 //What shading?
 int flat = 0;
-
+float zoom = 0.1f;
+float rotx = 0;
+float roty = 0.001f;
+float tx = 0;
+float ty = 0;
+int lastx=0;
+int lasty=0;
 int wireframe = 0;
+
+float lookatx = 0.0;
+float lookaty = 0.0;
+float lookatz = 0.0;
+float camerax;
+float cameray;
+float cameraz;
 //uniform shading step
 float step;
 //useless crap
@@ -84,7 +97,14 @@ void uniformDisplay() {
   glClear(GL_COLOR_BUFFER_BIT);				// clear the color buffer
   glMatrixMode(GL_MODELVIEW);			        // indicate we are specifying camera transformations
   glLoadIdentity();
-  gluLookAt(.2, .1, 0.5, 0.5, 0.5, 0.7, 0, 0, 1);
+  gluLookAt(camerax, cameray, cameraz, lookatx, lookaty, lookatz, 0, 0, 1);
+
+  //glLoadIdentity();
+
+  /**glTranslatef(0,-zoom,0);
+  glTranslatef(tx,ty,0);
+  glRotatef(rotx,1,0,0);
+  glRotatef(roty,0,1,0);*/
   // Start drawing
   if (flat) {
     // glColor3f(1.0f, 1.0f, 1.0f);
@@ -225,7 +245,7 @@ void adaptiveDisplay() {
     }
   }
   glFlush();
-  glutSwapBuffers();					// swap buffers (we earlier set float buffer)
+  glutSwapBuffers();			// swap buffers (we earlier set float buffer)
 }
 
 GLfloat* floady(vector<float> x) {
@@ -313,12 +333,19 @@ int main(int argc, char *argv[]) {
 	vector<vector<float> > row;
 	for (int k = 0; k < 4; k++) {
 	  vector<float> point;
-	  for (int kk = 0; kk < 3; kk++) {
-	    float coordinate;
-	    file >> coordinate;
-	    point.push_back(coordinate);
-	  }
+	  float xcoordinate;
+	  file >> xcoordinate;
+	  point.push_back(xcoordinate);
+	  float ycoordinate;
+	  file >> ycoordinate;
+	  point.push_back(ycoordinate);
+	  float zcoordinate;
+	  file >> zcoordinate;
+	  point.push_back(zcoordinate);
 	  row.push_back(point);
+	  lookatx += xcoordinate;
+	  lookaty += ycoordinate;
+	  lookatz += zcoordinate;
 	}
 	patch.push_back(row);
       }
@@ -326,6 +353,10 @@ int main(int argc, char *argv[]) {
     }
     file.close();
   }
+  lookatx /= (16.0 * paches);
+  lookaty /= (16.0 * paches);
+  lookatz /= (16.0 * paches);
+  cout << lookatx << " " << lookaty << " " << lookatz << "\n";
   //This initializes glut
   glutInit(&argc, argv);
   //This tells glut to use a float-buffered window with red, green, and blue channels 
@@ -339,16 +370,19 @@ int main(int argc, char *argv[]) {
   glutCreateWindow(argv[0]);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  //glOrtho(-1, 1, -1, 1, -1, 1);
   initScene();
   if (adaptive) {						// quick function to set up scene
     glutDisplayFunc(adaptiveDisplay);
   } else {
-        glutDisplayFunc(uniformDisplay); // function to run when its time to draw something
+    glutDisplayFunc(uniformDisplay); // function to run when its time to draw something
   }
   glutReshapeFunc(myReshape);				// function to run when the window gets resized
   glutKeyboardFunc(keyPressed); // Tell GLUT to use the method "keyPressed" for key presses (http://www.swiftless.com/tutorials/opengl/keyboard.html)
   glutSpecialFunc(arrows);
+  gluPerspective(45, 1, 0.01, 10);
+  camerax = lookatx/2;
+  cameray = 2 * (lookatx + lookaty + lookatz);
+  cameraz = lookatz * 4;
   glutMainLoop();							// infinite loop that will keep drawing and resizing
   // and whatever else
   return 0;
@@ -368,18 +402,21 @@ void arrows(int key, int x, int y) {
 void keyPressed (unsigned char key, int x, int y) {  
   if (key == 's') {
     flat = flat ^ 1;
-    glutPostRedisplay();
   }
   if (key == 'w') {
     wireframe = wireframe ^ 1;
-    glutPostRedisplay();
-  }
-  if (key == '+') {
-    //zoomm in
   }
   if (key == '-') {
-    //zoom out
+    camerax = camerax + 0.1 * (camerax - lookatx);
+    cameray = cameray + 0.1 * (cameray - lookaty);
+    cameraz = cameraz + 0.1 * (cameraz - lookatz);
   }
+  if (key == '+') {
+    camerax = camerax - 0.1 * (camerax - lookatx);
+    cameray = cameray - 0.1 * (cameray - lookaty);
+    cameraz = cameraz - 0.1 * (cameraz - lookatz);
+  }
+  glutPostRedisplay();
 }  
 
 vector<float> pluss(vector<float> x, vector<float> y) {
