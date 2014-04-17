@@ -38,7 +38,7 @@ int vertex, drawn;
 //Holds the patches
 vector<vector<vector<vector<float> > > > patches;
 //What shading?
-int flat = 1;
+int flat = 0;
 //uniform shading step
 float step;
 //useless crap
@@ -78,17 +78,18 @@ void myDisplay() {
   glClear(GL_COLOR_BUFFER_BIT);				// clear the color buffer
   glMatrixMode(GL_MODELVIEW);			        // indicate we are specifying camera transformations
   glLoadIdentity();
-  gluLookAt(0.5, 0.5, -0.9, 0.5, 0.5, 0, 0, 1, 0);
-  // Start drawing
+  gluLookAt(0.1, 0, 0.5, 0.5, 0.5, 0.7, 0, 0, 1);
+  
+// Start drawing
   if (flat) {
     glColor3f(1.0f, 1.0f, 1.0f);
   } else {
     glShadeModel(GL_SMOOTH);
     //copied from http://www.cs.uml.edu/~haim/teaching/cg/resources/presentations/427/AngelCG20_shading_OpenGL.pdf.
     GLfloat diffuse0[]={1.0, 0.0, 0.0, 1.0};
-    GLfloat ambient0[]={1.0, 0.0, 0.0, 1.0};
+    GLfloat ambient0[]={0.0, 0.0, 0.0, 1.0};
     GLfloat specular0[]={1.0, 1.0, 1.0, 1.0};
-    GLfloat light0_pos[]={0.5, 0.0, 0.0, 1.0};
+    GLfloat light0_pos[]={0.0, 0.0, 1.0, 1.0};
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     glLightfv(GL_LIGHT0, GL_POSITION, light0_pos);
@@ -104,9 +105,12 @@ void myDisplay() {
     glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
     glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shine); 
   }
-  glPointSize(5.0f);
-  //for (int patch = 0; patch < patches.size(); patch++) {
-  for (int patch = 0; patch < 1; patch++) {
+  glPointSize(50.0f);
+  //glBegin(GL_POINTS);
+  //glVertex3f(0, 0, 0);
+  //glEnd();
+  for (int patch = 0; patch < patches.size(); patch++) {
+  //for (int patch = 0; patch < 1; patch++) {
     vector<vector<vector<float> > > currPatch = patches[patch];
     int numdiv = (1 + step/10) / step;
     for (int iu = 0; iu < numdiv; iu++) {
@@ -117,15 +121,15 @@ void myDisplay() {
 	vector<vector<float> >interp2 = beezerpatch(currPatch, u+step, v);
 	vector<vector<float> >interp3 = beezerpatch(currPatch, u, v+step);
 	vector<vector<float> >interp4 = beezerpatch(currPatch, u+step, v+step);
-	/*cout << "One\n";
-	printvect(interp1);
-	cout << "Two\n";
+	cout << "One\n";
+	printvect(interp1[0]);
+	/*cout << "Two\n";
 	printvect(interp2);
 	cout << "Three\n";
 	printvect(interp3);
 	cout << "Four\n";
 	printvect(interp4);*/
-	glBegin(GL_POINTS);
+	glBegin(GL_QUADS);
 	//glNormal3f(interp1[3], interp1[4], interp1[5]);
 	glVertex3fv(floady(interp1[0]));
 	glVertex3fv(floady(interp2[0]));
@@ -133,32 +137,12 @@ void myDisplay() {
 	glVertex3fv(floady(interp3[0]));
 	glEnd();
 	/*glBegin(GL_LINES);
-	glVertex3f(interp1[0], interp1[1], interp1[2]);
-	glVertex3f(interp2[0], interp2[1], interp2[2]);
-	glVertex3f(interp3[0], interp3[1], interp3[2]);
-	glVertex3f(interp4[0], interp4[1], interp4[2]);
-	glVertex3f(interp1[0], interp1[1], interp1[2]);
-	glVertex3f(interp4[0], interp4[1], interp4[2]);
-	glVertex3f(interp2[0], interp2[1], interp2[2]);
-	glVertex3f(interp3[0], interp3[1], interp3[2]);
-	glEnd();*/
-	/*glBegin(GL_LINES);
-	printvect(interp1);
-	cout << "\nBot ^^\n";
-	glVertex3f(interp1[0], interp1[1], interp1[2]);
-	glVertex3f(interp1[3] + interp1[0], interp1[4] + interp1[1], interp1[5] + interp1[2]);
-	glVertex3f(interp2[0], interp2[1], interp2[2]);
-	glVertex3f(interp2[3] + interp2[0], interp2[4] + interp2[1], interp2[5] + interp2[2]);
-	glVertex3f(interp3[0], interp3[1], interp3[2]);
-	glVertex3f(interp3[3] + interp3[0], interp3[4] + interp3[1], interp3[5] + interp3[2]);	
-	glVertex3f(interp4[0], interp4[1], interp4[2]);
-	glVertex3f(interp4[3] + interp4[0], interp4[4] + interp4[1], interp4[5] + interp4[2]);
-	//glVertex3f(.5, 0, 0);
+	glVertex3fv(floady(interp1[0]));
+	glVertex3fv(floady(pluss(interp1[0], times(interp1[1], 0.1))));
 	glEnd();*/
       }
     }
   }
-  glEnd();
   glFlush();
   glutSwapBuffers();					// swap buffers (we earlier set float buffer)
 }
@@ -186,7 +170,7 @@ vector<vector<float> > beezercurve(vector<vector<float> > curve, float u) {
   return result;
 }
 
-//interpolates the beezer patch, returning the 6-vector of the point and surface normal
+//interpolates the beezer patch, returning the 2-vector of the point and surface normal
 vector<vector<float> >beezerpatch(vector<vector<vector<float> > > patch, float u, float v) {
   vector<vector<float> > draw;
   vector<vector<float> > ucurve;
@@ -221,7 +205,7 @@ vector<vector<float> >beezerpatch(vector<vector<vector<float> > > patch, float u
   ucurve.push_back(beezercurve(col4, v)[0]);
   vector<vector<float> > pdpdv = beezercurve(vcurve, v);
   vector<vector<float> > pdpdu = beezercurve(ucurve, u);
-  vector<float> n = normalize(cross(pdpdv[1], pdpdu[1]));
+  vector<float> n = normalize(cross(pdpdu[1], pdpdv[1]));
   draw.push_back(pdpdu[0]);
   draw.push_back(n);
   return draw;
@@ -265,7 +249,7 @@ int main(int argc, char *argv[]) {
   glutCreateWindow(argv[0]);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glOrtho(-1, 1, -1, 1, -1, 1);
+  //glOrtho(-1, 1, -1, 1, -1, 1);
   initScene();							// quick function to set up scene
   glutDisplayFunc(myDisplay);				// function to run when its time to draw something
   glutReshapeFunc(myReshape);				// function to run when the window gets resized
