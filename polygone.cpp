@@ -75,6 +75,7 @@ GLfloat* floady(vector<float> x);
 int isEqual(char *s, char *t, int len);
 void keyPressed (unsigned char key, int x, int y);
 void arrows(int key, int x, int y);
+vector<vector<vector<float> > > triangulate(vector<vector<vector<float> > > triangle);
 
 //****************************************************
 // reshape viewport if the window is resized
@@ -203,6 +204,107 @@ void uniformDisplay() {
 }
 
 void adaptiveDisplay() {
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);				// clear the color buffer
+  glEnable(GL_DEPTH_TEST);
+
+  glMatrixMode(GL_MODELVIEW);			        // indicate we are specifying camera transformations
+  glLoadIdentity();
+  //gluLookAt(camerax, cameray, cameraz, lookatx, lookaty, lookatz, 0, 0, 1);
+  gluLookAt(camerax, cameray, cameraz, 0, 0, 0, 0, 0, 1);
+  //glLoadIdentity();
+
+  /*glTranslatef(0,-zoom,0);*/
+  glTranslatef(tx,0,ty);
+  glRotatef(rotx,0,0,1);
+  glRotatef(roty,1,0,0);
+  // Start drawing
+  if (flat) {
+    glShadeModel(GL_FLAT);
+  } else {
+    glShadeModel(GL_SMOOTH);
+    //copied from http://www.cs.uml.edu/~haim/teaching/cg/resources/presentations/427/AngelCG20_shading_OpenGL.pdf.
+    GLfloat diffuse0[]={1.0, 0.0, 0.0, 1.0};
+    GLfloat ambient0[]={0.0, 0.0, 0.0, 1.0};
+    GLfloat specular0[]={1.0, 1.0, 1.0, 1.0};
+    GLfloat light0_pos[]={colorx, colory, colorz, 1.0};
+    GLfloat diffuse1[]={1.0, 0.0, 0.0, 1.0};
+    GLfloat ambient1[]={0.0, 0.0, 0.0, 1.0};
+    GLfloat specular1[]={1.0, 1.0, 1.0, 1.0};
+    GLfloat light1_pos[]={camerax, cameray, cameraz, 1.0};
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+    glLightfv(GL_LIGHT0, GL_POSITION, light0_pos);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient0);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse0);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, specular0);
+    glEnable(GL_LIGHT1);
+    glLightfv(GL_LIGHT1, GL_POSITION, light1_pos);
+    glLightfv(GL_LIGHT1, GL_AMBIENT, ambient1);
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, diffuse1);
+    glLightfv(GL_LIGHT1, GL_SPECULAR, specular1);
+    GLfloat ambient[] = {1.0, 0.0, 0.0, 1.0};
+    GLfloat diffuse[] = {1.0, 0.8, 0.0, 1.0};
+    GLfloat specular[] = {1.0, 1.0, 1.0, 1.0};
+    GLfloat shine = 100.0;
+    /*glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
+      glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
+      glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
+      glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shine); */
+    glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
+    glMaterialf(GL_FRONT, GL_SHININESS, shine); 
+  }
+  glPointSize(10.0f);
+  glBegin(GL_POINTS);
+  glVertex3f(colorx, colory, colorz);
+  glEnd();
+  for (int patch = 0; patch < patches.size(); patch++) {
+    //for (int patch = 0; patch < 1; patch++) {
+    vector<vector<vector<float> > > currPatch = patches[patch];
+    vector<vector<float> >interp1 = beezerpatch(currPatch, 0, 0);
+    vector<vector<float> >interp2 = beezerpatch(currPatch, 1, 0);
+    vector<vector<float> >interp3 = beezerpatch(currPatch, 0, 1);
+    vector<vector<float> >interp4 = beezerpatch(currPatch, 1, 1);
+    if (wireframe) {
+    } else {
+      glBegin(GL_TRIANGLES);
+    }
+    vector<vector<vector<float> > > triangle1, triangle2;
+    triangle1.push_back(interp1);
+    triangle1.push_back(interp2);
+    triangle1.push_back(interp4);
+    triangle2.push_back(interp1);
+    triangle2.push_back(interp4);
+    triangle2.push_back(interp3);
+    triangle1 = triangulate(triangle1);
+    triangle2 = triangulate(triangle2);
+    for(int kk = 0; kk < triangle1.size(); kk++) {
+      glNormal3fv(floady(triangle1[kk][1]));
+      glVertex3fv(floady(triangle1[kk][0]));
+    }
+    for(int l = 0; l < triangle2.size(); l++) {
+      glNormal3fv(floady(triangle2[l][1]));
+      glVertex3fv(floady(triangle2[l][0]));
+    }
+    glEnd();
+    /*glBegin(GL_LINES);
+      glVertex3fv(floady(interp1[0]));
+      glVertex3fv(floady(pluss(interp1[0], times(interp1[1], 0.15))));
+      glVertex3fv(floady(interp2[0]));
+      glVertex3fv(floady(pluss(interp2[0], times(interp2[1], 0.15))));
+      glVertex3fv(floady(interp3[0]));
+      glVertex3fv(floady(pluss(interp3[0], times(interp3[1], 0.15))));	
+      glVertex3fv(floady(interp4[0]));
+      glVertex3fv(floady(pluss(interp4[0], times(interp4[1], 0.15))));
+      glEnd();*/
+  }
+  glFlush();
+  glutSwapBuffers();					// swap buffers (we earlier set float buffer)
+}
+
+vector<vector<vector<float> > > triangulate(vector<vector<vector<float> > > triangle) {
+  return triangle;
 }
 
 GLfloat* floady(vector<float> x) {
