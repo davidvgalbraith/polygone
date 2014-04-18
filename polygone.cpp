@@ -101,8 +101,8 @@ void uniformDisplay() {
 
   //glLoadIdentity();
 
-  /*glTranslatef(0,-zoom,0);
-    glTranslatef(tx,ty,0);*/
+  /*glTranslatef(0,-zoom,0);*/
+  glTranslatef(tx,0,ty);
   glRotatef(rotx,0,0,1);
   glRotatef(roty,1,0,0);
   // Start drawing
@@ -265,6 +265,14 @@ vector<vector<float> > beezercurve(vector<vector<float> > curve, float u) {
   vector<float> e = pluss(times(b, 1-u), times(c, u));
   vector<float> p = pluss(times(d, 1-u), times(e, u));
   vector<float> dpdu = times(minuss(e, d), 3);
+  if (dpdu[0] == 0 && dpdu[1] == 0 && dpdu[2] == 0) {
+    cout << "Horrror\n";
+    printvect(e);
+    printvect(d);
+    cout << u << "\n";
+    printvectvect(curve);
+    cout << "/horror\n\n";
+  }
   vector<vector<float> > result;
   result.push_back(p);
   result.push_back(dpdu);
@@ -304,9 +312,34 @@ vector<vector<float> >beezerpatch(vector<vector<vector<float> > > patch, float u
   ucurve.push_back(beezercurve(col2, v)[0]);
   ucurve.push_back(beezercurve(col3, v)[0]);
   ucurve.push_back(beezercurve(col4, v)[0]);
+  cout << "V";
   vector<vector<float> > pdpdv = beezercurve(vcurve, v);
+  cout << "U";
   vector<vector<float> > pdpdu = beezercurve(ucurve, u);
+  cout << "free\n";
   vector<float> n = normalize(cross(pdpdu[1], pdpdv[1]));
+  if (n[0] == 0 && n[1] == 0 && n[2] == 0) {
+    cout << "Diagnostics\n\n";
+    cout << "Patch:";
+    printvectarray(patch);
+    cout << "\nCol1: ";
+    printvectvect(col1);
+    cout << "\ncol2: ";
+    printvectvect(col2);
+    cout << "\ncol3: ";
+    printvectvect(col3);
+    cout << "\ncol4: ";
+    printvectvect(col4);
+    cout << "\nvcurve: ";
+    printvectvect(vcurve);
+    cout << "ucurve";
+    printvectvect(ucurve);
+    cout << "PdPdu1:";
+    printvect(pdpdu[1]);
+    cout << "PdPdv1:";
+    printvect(pdpdv[1]);
+    cout << "\n";
+  }
   draw.push_back(pdpdu[0]);
   draw.push_back(n);
   return draw;
@@ -389,17 +422,35 @@ int main(int argc, char *argv[]) {
 }
 
 void arrows(int key, int x, int y) {
-  if (key == GLUT_KEY_UP) {
-    roty += 1;
-  }
-  if (key == GLUT_KEY_DOWN) {
-    roty -= 1;
-  } 
-  if (key == GLUT_KEY_LEFT) {
-    rotx -= 1;
-  } 
-  if (key == GLUT_KEY_RIGHT) {
-    rotx += 1;
+  int shift = glutGetModifiers();
+  if (shift == GLUT_ACTIVE_SHIFT) {
+    cout << "Shifty bastard.\n";
+    if (key == GLUT_KEY_UP) {
+      ty += 0.1;
+    }
+    if (key == GLUT_KEY_DOWN) {
+      ty -= 0.1;
+    } 
+    if (key == GLUT_KEY_LEFT) {
+      tx += 0.1;
+    } 
+    if (key == GLUT_KEY_RIGHT) {
+      tx -= 0.1;
+    }
+  } else {
+    cout << "No shift\n";
+    if (key == GLUT_KEY_UP) {
+      roty += 1;
+    }
+    if (key == GLUT_KEY_DOWN) {
+      roty -= 1;
+    } 
+    if (key == GLUT_KEY_LEFT) {
+      rotx -= 1;
+    } 
+    if (key == GLUT_KEY_RIGHT) {
+      rotx += 1;
+    }
   }
   glutPostRedisplay();
 }
@@ -465,7 +516,7 @@ vector<float> normalize(vector<float> v) {
     norm += v[k] * v[k];
   }
   if (norm == 0) {
-    cout << "Tragedy: nomrmalized a zero";
+    cout << "Tragedy: nomrmalized a zero\n";
     norm = 1;
   }
   norm = sqrt(norm);
