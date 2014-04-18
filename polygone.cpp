@@ -38,6 +38,7 @@ public:
   int w, h; // width and height
 };
 int vertex, drawn;
+int firstrun = 1;
 //Holds the patches
 vector<vector<vector<vector<float> > > > patches;
 //What superpowers?
@@ -51,6 +52,7 @@ int lastx=0;
 int lasty=0;
 int wireframe = 0;
 int adaptive;
+vector<vector<vector<float> > > shape;
 
 float lookatx = 0.0;
 float lookaty = 0.0;
@@ -75,7 +77,8 @@ GLfloat* floady(vector<float> x);
 int isEqual(char *s, char *t, int len);
 void keyPressed (unsigned char key, int x, int y);
 void arrows(int key, int x, int y);
-vector<vector<vector<float> > > triangulate(vector<vector<vector<float> > > triangle);
+vector<vector<vector<float> > > triangulate(vector<vector<vector<float> > > triangle, vector<vector<vector<float> > > patch);
+int isFlat(vector<vector<float> > v1, vector<vector<float> > v2, vector<vector<vector<float> > > patch);
 
 //****************************************************
 // reshape viewport if the window is resized
@@ -97,6 +100,7 @@ float colory = -1.5;
 float colorz = 0.5;
 
 void uniformDisplay() {
+  
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);				// clear the color buffer
   glEnable(GL_DEPTH_TEST);
 
@@ -111,10 +115,12 @@ void uniformDisplay() {
   glRotatef(rotx,0,0,1);
   glRotatef(roty,1,0,0);
   // Start drawing
-  if (flat) {
-    glShadeModel(GL_FLAT);
-  } else {
-    glShadeModel(GL_SMOOTH);
+  if (firstrun) {
+    if (flat) {
+      glShadeModel(GL_FLAT);
+    } else {
+      glShadeModel(GL_SMOOTH);
+    }
     //copied from http://www.cs.uml.edu/~haim/teaching/cg/resources/presentations/427/AngelCG20_shading_OpenGL.pdf.
     GLfloat diffuse0[]={1.0, 0.0, 0.0, 1.0};
     GLfloat ambient0[]={0.0, 0.0, 0.0, 1.0};
@@ -139,64 +145,55 @@ void uniformDisplay() {
     GLfloat diffuse[] = {1.0, 0.8, 0.0, 1.0};
     GLfloat specular[] = {1.0, 1.0, 1.0, 1.0};
     GLfloat shine = 100.0;
-    /*glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
-      glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
-      glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
-      glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shine); */
     glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
     glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
     glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
     glMaterialf(GL_FRONT, GL_SHININESS, shine); 
-  }
-  glPointSize(10.0f);
-  glBegin(GL_POINTS);
-  glVertex3f(colorx, colory, colorz);
-  glEnd();
-  for (int patch = 0; patch < patches.size(); patch++) {
-    //for (int patch = 0; patch < 1; patch++) {
-    vector<vector<vector<float> > > currPatch = patches[patch];
-    int numdiv = (1 + step/10) / step;
-    for (int iu = 0; iu < numdiv; iu++) {
-      float u = iu * step;
-      for (int iv = 0; iv < numdiv; iv++) {
-	float v = iv * step;
-	vector<vector<float> >interp1 = beezerpatch(currPatch, u, v);
-	vector<vector<float> >interp2 = beezerpatch(currPatch, u+step, v);
-	vector<vector<float> >interp3 = beezerpatch(currPatch, u, v+step);
-	vector<vector<float> >interp4 = beezerpatch(currPatch, u+step, v+step);
-	if (wireframe) {
-	  glBegin(GL_LINES);
+    for (int patch = 0; patch < patches.size(); patch++) {
+      //for (int patch = 0; patch < 1; patch++) {
+      vector<vector<vector<float> > > currPatch = patches[patch];
+      int numdiv = (1 + step/10) / step;
+      for (int iu = 0; iu < numdiv; iu++) {
+	float u = iu * step;
+	for (int iv = 0; iv < numdiv; iv++) {
+	  float v = iv * step;
+	  vector<vector<float> >interp1 = beezerpatch(currPatch, u, v);
+	  vector<vector<float> >interp2 = beezerpatch(currPatch, u+step, v);
+	  vector<vector<float> >interp3 = beezerpatch(currPatch, u, v+step);
+	  vector<vector<float> >interp4 = beezerpatch(currPatch, u+step, v+step);
+	  shape.push_back(interp1);
+	  shape.push_back(interp2);
+	  shape.push_back(interp3);
+	  shape.push_back(interp4);
+	  if (wireframe) {
+	    glBegin(GL_LINES);
+	    glNormal3fv(floady(interp1[1]));
+	    glVertex3fv(floady(interp1[0]));
+	    glNormal3fv(floady(interp3[1]));
+	    glVertex3fv(floady(interp3[0]));
+	    glNormal3fv(floady(interp2[1]));
+	    glVertex3fv(floady(interp2[0]));
+	    glNormal3fv(floady(interp4[1]));
+	    glVertex3fv(floady(interp4[0]));
+	  } else {
+	    glBegin(GL_QUADS);
+	  }
 	  glNormal3fv(floady(interp1[1]));
 	  glVertex3fv(floady(interp1[0]));
-	  glNormal3fv(floady(interp3[1]));
-	  glVertex3fv(floady(interp3[0]));
 	  glNormal3fv(floady(interp2[1]));
 	  glVertex3fv(floady(interp2[0]));
 	  glNormal3fv(floady(interp4[1]));
 	  glVertex3fv(floady(interp4[0]));
-	} else {
-	  glBegin(GL_QUADS);
-	}
-	glNormal3fv(floady(interp1[1]));
-	glVertex3fv(floady(interp1[0]));
-	glNormal3fv(floady(interp2[1]));
-	glVertex3fv(floady(interp2[0]));
-	glNormal3fv(floady(interp4[1]));
-	glVertex3fv(floady(interp4[0]));
-	glNormal3fv(floady(interp3[1]));
-	glVertex3fv(floady(interp3[0]));
-	glEnd();
-	/*glBegin(GL_LINES);
-	  glVertex3fv(floady(interp1[0]));
-	  glVertex3fv(floady(pluss(interp1[0], times(interp1[1], 0.15))));
-	  glVertex3fv(floady(interp2[0]));
-	  glVertex3fv(floady(pluss(interp2[0], times(interp2[1], 0.15))));
+	  glNormal3fv(floady(interp3[1]));
 	  glVertex3fv(floady(interp3[0]));
-	  glVertex3fv(floady(pluss(interp3[0], times(interp3[1], 0.15))));	
-	  glVertex3fv(floady(interp4[0]));
-	  glVertex3fv(floady(pluss(interp4[0], times(interp4[1], 0.15))));
-	  glEnd();*/
+	  glEnd();
+	}
       }
+    }
+    firstrun = 0;
+  } else {
+    for (int s = 0; s < shape.size(); s++) {
+      
     }
   }
   glFlush();
@@ -259,33 +256,54 @@ void adaptiveDisplay() {
   glBegin(GL_POINTS);
   glVertex3f(colorx, colory, colorz);
   glEnd();
+  int triangles = 0;
   for (int patch = 0; patch < patches.size(); patch++) {
     //for (int patch = 0; patch < 1; patch++) {
     vector<vector<vector<float> > > currPatch = patches[patch];
-    vector<vector<float> >interp1 = beezerpatch(currPatch, 0, 0);
-    vector<vector<float> >interp2 = beezerpatch(currPatch, 1, 0);
-    vector<vector<float> >interp3 = beezerpatch(currPatch, 0, 1);
-    vector<vector<float> >interp4 = beezerpatch(currPatch, 1, 1);
+    vector<vector<float> > interp1 = beezerpatch(currPatch, 0, 0);
+    vector<vector<float> > interp2 = beezerpatch(currPatch, 1, 0);
+    vector<vector<float> > interp3 = beezerpatch(currPatch, 0, 1);
+    vector<vector<float> > interp4 = beezerpatch(currPatch, 1, 1);
     if (wireframe) {
     } else {
       glBegin(GL_TRIANGLES);
     }
+    //vertex normal uv vertex normal uv vertex normal uv
     vector<vector<vector<float> > > triangle1, triangle2;
+    vector<float> uv1, uv2, uv3, uv4;
+    uv1.push_back(0);
+    uv1.push_back(0);
+    uv2.push_back(1);
+    uv2.push_back(0);
+    uv3.push_back(0);
+    uv3.push_back(1);
+    uv4.push_back(1);
+    uv4.push_back(1);
+    interp1.push_back(uv1);
+    interp2.push_back(uv2);
+    interp3.push_back(uv3);
+    interp4.push_back(uv4);
     triangle1.push_back(interp1);
     triangle1.push_back(interp2);
     triangle1.push_back(interp4);
-    triangle2.push_back(interp1);
     triangle2.push_back(interp4);
     triangle2.push_back(interp3);
-    triangle1 = triangulate(triangle1);
-    triangle2 = triangulate(triangle2);
+    triangle2.push_back(interp1);
+    triangle1 = triangulate(triangle1, currPatch);
+    triangle2 = triangulate(triangle2, currPatch);
+    //cout << "todraw tri1: ";
+    //printvectarray(triangle1);
+    //cout << "tordraw trei2: ";
+    //printvectarray(triangle2);
     for(int kk = 0; kk < triangle1.size(); kk++) {
       glNormal3fv(floady(triangle1[kk][1]));
       glVertex3fv(floady(triangle1[kk][0]));
+      triangles++;
     }
     for(int l = 0; l < triangle2.size(); l++) {
       glNormal3fv(floady(triangle2[l][1]));
       glVertex3fv(floady(triangle2[l][0]));
+      triangles++;
     }
     glEnd();
     /*glBegin(GL_LINES);
@@ -299,13 +317,295 @@ void adaptiveDisplay() {
       glVertex3fv(floady(pluss(interp4[0], times(interp4[1], 0.15))));
       glEnd();*/
   }
+  cout << "Triangles: " << triangles/3;
   glFlush();
   glutSwapBuffers();					// swap buffers (we earlier set float buffer)
 }
 
-vector<vector<vector<float> > > triangulate(vector<vector<vector<float> > > triangle) {
-  return triangle;
+//each element in triangle consists of a vertex, a normal, and a u-v cordinate, every three elements consists of a triangle
+vector<vector<vector<float> > > triangulate(vector<vector<vector<float> > > triangle, vector<vector<vector<float> > > patch) {
+  ////cout << "Triagnultaing: \n";
+  //printvectarray(triangle);
+  vector<vector<vector<float> > > result;
+  vector<vector<float> > v1 = triangle[0];
+  vector<vector<float> > v2 = triangle[1];
+  vector<vector<float> > v3 = triangle[2];
+  float u12 = (v1[2][0] + v2[2][0]) / 2;
+  float u23 = (v2[2][0] + v3[2][0]) / 2;
+  float u13 = (v1[2][0] + v3[2][0]) / 2;
+  float v12 = (v1[2][1] + v2[2][1]) / 2;
+  float v23 = (v2[2][1] + v3[2][1]) / 2;
+  float v13 = (v1[2][1] + v3[2][1]) / 2;
+  int f1 = 0;
+  int f2 = 0;
+  int f3 = 0;
+  if (isFlat(v1, v2, patch)) {
+    f1 = 1;
+  }
+  if (isFlat(v1, v3, patch)) {
+    f2 = 1;
+  }
+  if (isFlat(v2, v3, patch)) {
+    f3 = 1;
+  }
+
+  if (f1 && f2 && f3) {
+    //cout << 0 << "\n";
+    result.push_back(v1);
+    result.push_back(v2);
+    result.push_back(v3);
+  }
+
+  if (f1 && f2 && !f3) {
+    //cout << 1 << "\n";
+    vector<vector<float> > new3 = beezerpatch(patch, u23, v23);
+    vector<float> new3uv;
+    new3uv.push_back(u23);
+    new3uv.push_back(v23);
+    new3.push_back(new3uv);
+    vector<vector<vector<float> > > newtri1, newtri2;
+    newtri1.push_back(v1);
+    newtri1.push_back(v2);
+    newtri1.push_back(new3);
+    newtri2.push_back(v3);
+    newtri2.push_back(v1);
+    newtri2.push_back(new3);
+    vector<vector<vector<float> > > a1, a2;
+    a1 = triangulate(newtri1, patch);
+    a2 = triangulate(newtri2, patch);
+    for (int tri1 = 0; tri1 < a1.size(); tri1++) {
+      result.push_back(a1[tri1]);
+    }
+    for (int tri2 = 0; tri2 < a2.size(); tri2++) {
+      result.push_back(a2[tri2]);
+    }
+  }
+
+  if (f1 && !f2 && f3) {
+    //cout << 2 << "\n";
+    vector<vector<float> > new2 = beezerpatch(patch, u13, v13);
+    vector<float> new2uv;
+    new2uv.push_back(u13);
+    new2uv.push_back(v13);
+    new2.push_back(new2uv);
+    vector<vector<vector<float> > > newtri1, newtri2;
+    newtri1.push_back(v1);
+    newtri1.push_back(v2);
+    newtri1.push_back(new2);
+    newtri2.push_back(v3);
+    newtri2.push_back(new2);
+    newtri2.push_back(v2);
+    vector<vector<vector<float> > > a1, a2;
+    a1 = triangulate(newtri1, patch);
+    a2 = triangulate(newtri2, patch);
+    for (int tri1 = 0; tri1 < a1.size(); tri1++) {
+      result.push_back(a1[tri1]);
+    }
+    for (int tri2 = 0; tri2 < a2.size(); tri2++) {
+      result.push_back(a2[tri2]);
+    }
+  }
+
+  if (!f1 && f2 && f3) {
+    //cout << 3 << "\n";
+    vector<vector<float> > new1 = beezerpatch(patch, u12, v12);
+    vector<float> new1uv;
+    new1uv.push_back(u12);
+    new1uv.push_back(v12);
+    new1.push_back(new1uv);
+    vector<vector<vector<float> > > newtri1, newtri2;
+    newtri1.push_back(v1);
+    newtri1.push_back(new1);
+    newtri1.push_back(v3);
+    newtri2.push_back(v3);
+    newtri2.push_back(new1);
+    newtri2.push_back(v2);
+    vector<vector<vector<float> > > a1, a2;
+    a1 = triangulate(newtri1, patch);
+    a2 = triangulate(newtri2, patch);
+    for (int tri1 = 0; tri1 < a1.size(); tri1++) {
+      result.push_back(a1[tri1]);
+    }
+    for (int tri2 = 0; tri2 < a2.size(); tri2++) {
+      result.push_back(a2[tri2]);
+    }
+  }
+ 
+  if (f1 && !f2 && !f3) {
+    //cout << 4 << "\n";
+    vector<vector<float> > new2 = beezerpatch(patch, u13, v13);
+    vector<vector<float> > new3 = beezerpatch(patch, u23, v23);
+    vector<float> new2uv;
+    vector<float> new3uv;
+    new2uv.push_back(u13);
+    new2uv.push_back(v13);
+    new3uv.push_back(u23);
+    new3uv.push_back(v23);
+    new2.push_back(new2uv);
+    new3.push_back(new3uv);
+    vector<vector<vector<float> > > newtri1, newtri2, newtri3;
+    newtri1.push_back(v1);
+    newtri1.push_back(v2);
+    newtri1.push_back(new2);
+    newtri2.push_back(v2);
+    newtri2.push_back(new3);
+    newtri2.push_back(new2);
+    newtri3.push_back(v3);
+    newtri3.push_back(new2);
+    newtri3.push_back(new3);
+    vector<vector<vector<float> > > a1, a2, a3;
+    a1 = triangulate(newtri1, patch);
+    a2 = triangulate(newtri2, patch);
+    a3 = triangulate(newtri3, patch);
+    for (int tri1 = 0; tri1 < a1.size(); tri1++) {
+      result.push_back(a1[tri1]);
+    }
+    for (int tri2 = 0; tri2 < a2.size(); tri2++) {
+      result.push_back(a2[tri2]);
+    } 
+    for (int tri3 = 0; tri3 < a3.size(); tri3++) {
+      result.push_back(a3[tri3]);
+    }
+  }
+ 
+  if (!f1 && f2 && !f3) {
+    //cout << 5 << "\n";
+    vector<vector<float> > new1 = beezerpatch(patch, u12, v12);
+    vector<vector<float> > new3 = beezerpatch(patch, u23, v23);
+    vector<float> new1uv;
+    vector<float> new3uv;
+    new1uv.push_back(u12);
+    new1uv.push_back(v12);
+    new3uv.push_back(u23);
+    new3uv.push_back(v23);
+    new1.push_back(new1uv);
+    new3.push_back(new3uv);
+    vector<vector<vector<float> > > newtri1, newtri2, newtri3;
+    newtri1.push_back(v1);
+    newtri1.push_back(new1);
+    newtri1.push_back(new3);
+    newtri2.push_back(v2);
+    newtri2.push_back(new3);
+    newtri2.push_back(new1);
+    newtri3.push_back(v3);
+    newtri3.push_back(v1);
+    newtri3.push_back(new3);
+    vector<vector<vector<float> > > a1, a2, a3;
+    a1 = triangulate(newtri1, patch);
+    a2 = triangulate(newtri2, patch);
+    a3 = triangulate(newtri3, patch);
+    for (int tri1 = 0; tri1 < a1.size(); tri1++) {
+      result.push_back(a1[tri1]);
+    }
+    for (int tri2 = 0; tri2 < a2.size(); tri2++) {
+      result.push_back(a2[tri2]);
+    } 
+    for (int tri3 = 0; tri3 < a3.size(); tri3++) {
+      result.push_back(a3[tri3]);
+    }
+  }
+
+  if (!f1 && !f2 && f3) {
+    //cout << 6 << "\n";
+    vector<vector<float> > new1 = beezerpatch(patch, u12, v12);
+    vector<vector<float> > new2 = beezerpatch(patch, u13, v13);
+    vector<float> new1uv;
+    vector<float> new2uv;
+    new1uv.push_back(u12);
+    new1uv.push_back(v12);
+    new2uv.push_back(u13);
+    new2uv.push_back(v13);
+    new1.push_back(new1uv);
+    new2.push_back(new2uv);
+    vector<vector<vector<float> > > newtri1, newtri2, newtri3;
+    newtri1.push_back(v1);
+    newtri1.push_back(new1);
+    newtri1.push_back(new2);
+    newtri2.push_back(v2);
+    newtri2.push_back(v3);
+    newtri2.push_back(new1);
+    newtri3.push_back(v3);
+    newtri3.push_back(new1);
+    newtri3.push_back(new2);
+    vector<vector<vector<float> > > a1, a2, a3;
+    a1 = triangulate(newtri1, patch);
+    a2 = triangulate(newtri2, patch);
+    a3 = triangulate(newtri3, patch);
+    for (int tri1 = 0; tri1 < a1.size(); tri1++) {
+      result.push_back(a1[tri1]);
+    }
+    for (int tri2 = 0; tri2 < a2.size(); tri2++) {
+      result.push_back(a2[tri2]);
+    } 
+    for (int tri3 = 0; tri3 < a3.size(); tri3++) {
+      result.push_back(a3[tri3]);
+    }
+  }
+
+  if (!f1 && !f2 && !f3) {
+    //cout << 7 << "\n";
+    vector<vector<float> > new1 = beezerpatch(patch, u12, v12);
+    vector<vector<float> > new2 = beezerpatch(patch, u13, v13);
+    vector<vector<float> > new3 = beezerpatch(patch, u23, v23);
+    vector<float> new1uv;
+    vector<float> new2uv;
+    vector<float> new3uv;
+    new1uv.push_back(u12);
+    new1uv.push_back(v12);
+    new2uv.push_back(u13);
+    new2uv.push_back(v13);
+    new3uv.push_back(u23);
+    new3uv.push_back(v23);
+    new1.push_back(new1uv);
+    new2.push_back(new2uv);
+    new3.push_back(new3uv);
+    vector<vector<vector<float> > > newtri1, newtri2, newtri3, newtri4;
+    newtri1.push_back(v1);
+    newtri1.push_back(new1);
+    newtri1.push_back(new2);
+    newtri2.push_back(v2);
+    newtri2.push_back(new3);
+    newtri2.push_back(new1);
+    newtri3.push_back(v3);
+    newtri3.push_back(new2);
+    newtri3.push_back(new3);
+    newtri4.push_back(new1);
+    newtri4.push_back(new3);
+    newtri4.push_back(new2);
+    vector<vector<vector<float> > > a1, a2, a3, a4;
+    a1 = triangulate(newtri1, patch);
+    a2 = triangulate(newtri2, patch);
+    a3 = triangulate(newtri3, patch);
+    a4 = triangulate(newtri4, patch);
+    for (int tri1 = 0; tri1 < a1.size(); tri1++) {
+      result.push_back(a1[tri1]);
+    }
+    for (int tri2 = 0; tri2 < a2.size(); tri2++) {
+      result.push_back(a2[tri2]);
+    } 
+    for (int tri3 = 0; tri3 < a3.size(); tri3++) {
+      result.push_back(a3[tri3]);
+    }
+    for (int tri4 = 0; tri4 < a4.size(); tri4++) {
+      result.push_back(a4[tri4]);
+    }
+  }
+  //cout << "Triangluated ";
+  //printvectarray(result);
+  return result;
 }
+
+//v1, v2 are point normal uv
+int isFlat(vector<vector<float> > v1, vector<vector<float> > v2, vector<vector<vector<float> > > patch) {
+  vector<float> midpoint = times(pluss(v1[0], v2[0]), 0.5);
+  vector<vector<float> > midbez = beezerpatch(patch, (v1[2][0] + v2[2][0]) / 2, (v1[2][1] + v2[2][1]) / 2);
+  vector<float> diff = minuss(midpoint, midbez[0]);
+  float norm = sqrt(sqr(diff[0]) + sqr(diff[1]) + sqr(diff[2]));
+  if (norm < step) {
+    return 1;
+  } 
+  return 0;
+} 
 
 GLfloat* floady(vector<float> x) {
   GLfloat * ret = (GLfloat*) malloc(3 * sizeof(GLfloat));;
@@ -338,7 +638,7 @@ vector<vector<float> > beezercurve(vector<vector<float> > curve, float u) {
   return result;
 }
 
-//interpolates the beezer patch, returning the 2-vector of the point and surface normal
+//interpolates the beezer patch returning the 2-vector of the point and surface normal
 vector<vector<float> >beezerpatch(vector<vector<vector<float> > > patch, float u, float v) {
   vector<vector<float> > draw;
   vector<vector<float> > ucurve;
@@ -432,7 +732,7 @@ void initScene(int argc, char *argv[]) {
   gluPerspective(45, 1, 0.01, 10);
   camerax = lookatx/2;
   cameray = 2 * (lookatx + lookaty + lookatz);
-  cameraz = 8;
+  cameraz = 9;
   cout << camerax << " " << cameray << " " << cameraz;
 }
 
