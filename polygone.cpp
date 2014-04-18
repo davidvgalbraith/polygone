@@ -38,7 +38,7 @@ public:
 int vertex, drawn;
 //Holds the patches
 vector<vector<vector<vector<float> > > > patches;
-//What shading?
+//What superpowers?
 int flat = 0;
 float zoom = 0.1f;
 float rotx = 0;
@@ -101,10 +101,10 @@ void uniformDisplay() {
 
   //glLoadIdentity();
 
-  /**glTranslatef(0,-zoom,0);
-  glTranslatef(tx,ty,0);
-  glRotatef(rotx,1,0,0);
-  glRotatef(roty,0,1,0);*/
+  /*glTranslatef(0,-zoom,0);
+    glTranslatef(tx,ty,0);*/
+  glRotatef(rotx,0,0,1);
+  glRotatef(roty,1,0,0);
   // Start drawing
   if (flat) {
     // glColor3f(1.0f, 1.0f, 1.0f);
@@ -390,13 +390,18 @@ int main(int argc, char *argv[]) {
 
 void arrows(int key, int x, int y) {
   if (key == GLUT_KEY_UP) {
+    roty += 1;
   }
   if (key == GLUT_KEY_DOWN) {
+    roty -= 1;
   } 
   if (key == GLUT_KEY_LEFT) {
+    rotx -= 1;
   } 
   if (key == GLUT_KEY_RIGHT) {
+    rotx += 1;
   }
+  glutPostRedisplay();
 }
 
 void keyPressed (unsigned char key, int x, int y) {  
