@@ -192,8 +192,33 @@ void uniformDisplay() {
     }
     firstrun = 0;
   } else {
-    for (int s = 0; s < shape.size(); s++) {
-      
+    for (int s = 0; s < shape.size(); s+=4) {
+      vector<vector<float> > interp1 = shape[s];
+      vector<vector<float> > interp2 = shape[s+1];
+      vector<vector<float> > interp3 = shape[s+2];
+      vector<vector<float> > interp4 = shape[s+3];
+      if (wireframe) {
+	glBegin(GL_LINES);
+	glNormal3fv(floady(interp1[1]));
+	glVertex3fv(floady(interp1[0]));
+	glNormal3fv(floady(interp3[1]));
+	glVertex3fv(floady(interp3[0]));
+	glNormal3fv(floady(interp2[1]));
+	glVertex3fv(floady(interp2[0]));
+	glNormal3fv(floady(interp4[1]));
+	glVertex3fv(floady(interp4[0]));
+      } else {
+	glBegin(GL_QUADS);
+      }
+      glNormal3fv(floady(interp1[1]));
+      glVertex3fv(floady(interp1[0]));
+      glNormal3fv(floady(interp2[1]));
+      glVertex3fv(floady(interp2[0]));
+      glNormal3fv(floady(interp4[1]));
+      glVertex3fv(floady(interp4[0]));
+      glNormal3fv(floady(interp3[1]));
+      glVertex3fv(floady(interp3[0]));
+      glEnd();
     }
   }
   glFlush();
