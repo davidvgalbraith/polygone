@@ -1,4 +1,4 @@
-#include <GL/glew.h>
+//#include <GL/glew.h>
 #include <GL/freeglut.h>
 
 #include <vector>
@@ -26,7 +26,7 @@
 #include <fstream>
 #include <string.h>
 #define PI 3.14159265  // Should be used from mathlib
-#define randy ((float) (rand() % 1000000000) / 10000000000000)
+#define randy ((float) (rand() % 1000000000) / 50000000000000)
 //#define randy 0
 
 using namespace std;
@@ -90,7 +90,6 @@ void myReshape(int w, int h) {
   glViewport (0,0,viewport.w,viewport.h);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glutPostRedisplay();
-
 }
 //****************************************************
 // function that does the actual drawing of stuff
@@ -228,14 +227,9 @@ void uniformDisplay() {
 void adaptiveDisplay() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);				// clear the color buffer
   glEnable(GL_DEPTH_TEST);
-
   glMatrixMode(GL_MODELVIEW);			        // indicate we are specifying camera transformations
   glLoadIdentity();
-  //gluLookAt(camerax, cameray, cameraz, lookatx, lookaty, lookatz, 0, 0, 1);
   gluLookAt(camerax, cameray, cameraz, 0, 0, 0, 0, 0, 1);
-  //glLoadIdentity();
-
-  /*glTranslatef(0,-zoom,0);*/
   glTranslatef(tx,0,ty);
   glRotatef(rotx,0,0,1);
   glRotatef(roty,1,0,0);
@@ -276,7 +270,6 @@ void adaptiveDisplay() {
   
   if (firstrun) {
     for (int patch = 0; patch < patches.size(); patch++) {
-      //for (int patch = 0; patch < 1; patch++) {
       vector<vector<vector<float> > > currPatch = patches[patch];
       vector<vector<float> > interp1 = beezerpatch(currPatch, 0, 0);
       vector<vector<float> > interp2 = beezerpatch(currPatch, 1, 0);
@@ -326,19 +319,22 @@ void adaptiveDisplay() {
       friangle2 = triangliminations[t+1];
       if (wireframe) {
 	glBegin(GL_LINES);
-	glVertex3fv(floady(friangle1[0][0]));
-	glVertex3fv(floady(friangle1[1][0]));
-	glVertex3fv(floady(friangle1[1][0]));
-	glVertex3fv(floady(friangle1[2][0]));
-	glVertex3fv(floady(friangle1[2][0]));
-	glVertex3fv(floady(friangle1[0][0]));
-	
-	glVertex3fv(floady(friangle2[0][0]));
-	glVertex3fv(floady(friangle2[1][0]));
-	glVertex3fv(floady(friangle2[1][0]));
-	glVertex3fv(floady(friangle2[2][0]));
-	glVertex3fv(floady(friangle2[2][0]));
-	glVertex3fv(floady(friangle2[0][0]));
+	for (int kk = 0; kk < friangle1.size() - 2; kk+=3) {
+	  glVertex3fv(floady(friangle1[kk][0]));
+	  glVertex3fv(floady(friangle1[kk+1][0]));
+	  glVertex3fv(floady(friangle1[kk+1][0]));
+	  glVertex3fv(floady(friangle1[kk+2][0]));
+	  glVertex3fv(floady(friangle1[kk+2][0]));
+	  glVertex3fv(floady(friangle1[kk][0]));
+	}
+	for (int l = 0; l < friangle2.size() - 2; l+=3) {
+	  glVertex3fv(floady(friangle2[l][0]));
+	  glVertex3fv(floady(friangle2[l+1][0]));
+	  glVertex3fv(floady(friangle2[l+1][0]));
+	  glVertex3fv(floady(friangle2[l+2][0]));
+	  glVertex3fv(floady(friangle2[l+2][0]));
+	  glVertex3fv(floady(friangle2[l][0]));
+	}
       } else {
 	glBegin(GL_TRIANGLES);
 	for (int kk = 0; kk < friangle1.size(); kk++) {
