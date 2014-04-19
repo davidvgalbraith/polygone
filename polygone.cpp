@@ -53,7 +53,7 @@ int lasty=0;
 int wireframe = 0;
 int adaptive;
 vector<vector<vector<float> > > shape;
-
+vector<vector<vector<vector<float> > > > triangliminations;
 float lookatx = 0.0;
 float lookaty = 0.0;
 float lookatz = 0.0;
@@ -115,40 +115,40 @@ void uniformDisplay() {
   glRotatef(rotx,0,0,1);
   glRotatef(roty,1,0,0);
   // Start drawing
+  if (flat) {
+    glShadeModel(GL_FLAT);
+  } else {
+    glShadeModel(GL_SMOOTH);
+  }
+  //copied from http://www.cs.uml.edu/~haim/teaching/cg/resources/presentations/427/AngelCG20_shading_OpenGL.pdf.
+  GLfloat diffuse0[]={1.0, 0.0, 0.0, 1.0};
+  GLfloat ambient0[]={0.0, 0.0, 0.0, 1.0};
+  GLfloat specular0[]={1.0, 1.0, 1.0, 1.0};
+  GLfloat light0_pos[]={colorx, colory, colorz, 1.0};
+  GLfloat diffuse1[]={1.0, 0.0, 0.0, 1.0};
+  GLfloat ambient1[]={0.0, 0.0, 0.0, 1.0};
+  GLfloat specular1[]={1.0, 1.0, 1.0, 1.0};
+  GLfloat light1_pos[]={camerax, cameray, cameraz, 1.0};
+  glEnable(GL_LIGHTING);
+  glEnable(GL_LIGHT0);
+  glLightfv(GL_LIGHT0, GL_POSITION, light0_pos);
+  glLightfv(GL_LIGHT0, GL_AMBIENT, ambient0);
+  glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse0);
+  glLightfv(GL_LIGHT0, GL_SPECULAR, specular0);
+  glEnable(GL_LIGHT1);
+  glLightfv(GL_LIGHT1, GL_POSITION, light1_pos);
+  glLightfv(GL_LIGHT1, GL_AMBIENT, ambient1);
+  glLightfv(GL_LIGHT1, GL_DIFFUSE, diffuse1);
+  glLightfv(GL_LIGHT1, GL_SPECULAR, specular1);
+  GLfloat ambient[] = {1.0, 0.0, 0.0, 1.0};
+  GLfloat diffuse[] = {1.0, 0.8, 0.0, 1.0};
+  GLfloat specular[] = {1.0, 1.0, 1.0, 1.0};
+  GLfloat shine = 100.0;
+  glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
+  glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+  glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
+  glMaterialf(GL_FRONT, GL_SHININESS, shine); 
   if (firstrun) {
-    if (flat) {
-      glShadeModel(GL_FLAT);
-    } else {
-      glShadeModel(GL_SMOOTH);
-    }
-    //copied from http://www.cs.uml.edu/~haim/teaching/cg/resources/presentations/427/AngelCG20_shading_OpenGL.pdf.
-    GLfloat diffuse0[]={1.0, 0.0, 0.0, 1.0};
-    GLfloat ambient0[]={0.0, 0.0, 0.0, 1.0};
-    GLfloat specular0[]={1.0, 1.0, 1.0, 1.0};
-    GLfloat light0_pos[]={colorx, colory, colorz, 1.0};
-    GLfloat diffuse1[]={1.0, 0.0, 0.0, 1.0};
-    GLfloat ambient1[]={0.0, 0.0, 0.0, 1.0};
-    GLfloat specular1[]={1.0, 1.0, 1.0, 1.0};
-    GLfloat light1_pos[]={camerax, cameray, cameraz, 1.0};
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-    glLightfv(GL_LIGHT0, GL_POSITION, light0_pos);
-    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient0);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse0);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, specular0);
-    glEnable(GL_LIGHT1);
-    glLightfv(GL_LIGHT1, GL_POSITION, light1_pos);
-    glLightfv(GL_LIGHT1, GL_AMBIENT, ambient1);
-    glLightfv(GL_LIGHT1, GL_DIFFUSE, diffuse1);
-    glLightfv(GL_LIGHT1, GL_SPECULAR, specular1);
-    GLfloat ambient[] = {1.0, 0.0, 0.0, 1.0};
-    GLfloat diffuse[] = {1.0, 0.8, 0.0, 1.0};
-    GLfloat specular[] = {1.0, 1.0, 1.0, 1.0};
-    GLfloat shine = 100.0;
-    glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
-    glMaterialf(GL_FRONT, GL_SHININESS, shine); 
     for (int patch = 0; patch < patches.size(); patch++) {
       //for (int patch = 0; patch < 1; patch++) {
       vector<vector<vector<float> > > currPatch = patches[patch];
@@ -244,113 +244,121 @@ void adaptiveDisplay() {
     glShadeModel(GL_FLAT);
   } else {
     glShadeModel(GL_SMOOTH);
-    //copied from http://www.cs.uml.edu/~haim/teaching/cg/resources/presentations/427/AngelCG20_shading_OpenGL.pdf.
-    GLfloat diffuse0[]={1.0, 0.0, 0.0, 1.0};
-    GLfloat ambient0[]={0.0, 0.0, 0.0, 1.0};
-    GLfloat specular0[]={1.0, 1.0, 1.0, 1.0};
-    GLfloat light0_pos[]={colorx, colory, colorz, 1.0};
-    GLfloat diffuse1[]={1.0, 0.0, 0.0, 1.0};
-    GLfloat ambient1[]={0.0, 0.0, 0.0, 1.0};
-    GLfloat specular1[]={1.0, 1.0, 1.0, 1.0};
-    GLfloat light1_pos[]={camerax, cameray, cameraz, 1.0};
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-    glLightfv(GL_LIGHT0, GL_POSITION, light0_pos);
-    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient0);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse0);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, specular0);
-    glEnable(GL_LIGHT1);
-    glLightfv(GL_LIGHT1, GL_POSITION, light1_pos);
-    glLightfv(GL_LIGHT1, GL_AMBIENT, ambient1);
-    glLightfv(GL_LIGHT1, GL_DIFFUSE, diffuse1);
-    glLightfv(GL_LIGHT1, GL_SPECULAR, specular1);
-    GLfloat ambient[] = {1.0, 0.0, 0.0, 1.0};
-    GLfloat diffuse[] = {1.0, 0.8, 0.0, 1.0};
-    GLfloat specular[] = {1.0, 1.0, 1.0, 1.0};
-    GLfloat shine = 100.0;
-    /*glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
-      glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
-      glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
-      glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shine); */
-    glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
-    glMaterialf(GL_FRONT, GL_SHININESS, shine); 
   }
-  glPointSize(10.0f);
-  glBegin(GL_POINTS);
-  glVertex3f(colorx, colory, colorz);
-  glEnd();
-  int triangles = 0;
-  for (int patch = 0; patch < patches.size(); patch++) {
-    //for (int patch = 0; patch < 1; patch++) {
-    vector<vector<vector<float> > > currPatch = patches[patch];
-    vector<vector<float> > interp1 = beezerpatch(currPatch, 0, 0);
-    vector<vector<float> > interp2 = beezerpatch(currPatch, 1, 0);
-    vector<vector<float> > interp3 = beezerpatch(currPatch, 0, 1);
-    vector<vector<float> > interp4 = beezerpatch(currPatch, 1, 1);
-    if (wireframe) {
-    } else {
+  //copied from http://www.cs.uml.edu/~haim/teaching/cg/resources/presentations/427/AngelCG20_shading_OpenGL.pdf.
+  GLfloat diffuse0[]={1.0, 0.0, 0.0, 1.0};
+  GLfloat ambient0[]={0.0, 0.0, 0.0, 1.0};
+  GLfloat specular0[]={1.0, 1.0, 1.0, 1.0};
+  GLfloat light0_pos[]={colorx, colory, colorz, 1.0};
+  GLfloat diffuse1[]={1.0, 0.0, 0.0, 1.0};
+  GLfloat ambient1[]={0.0, 0.0, 0.0, 1.0};
+  GLfloat specular1[]={1.0, 1.0, 1.0, 1.0};
+  GLfloat light1_pos[]={camerax, cameray, cameraz, 1.0};
+  glEnable(GL_LIGHTING);
+  glEnable(GL_LIGHT0);
+  glLightfv(GL_LIGHT0, GL_POSITION, light0_pos);
+  glLightfv(GL_LIGHT0, GL_AMBIENT, ambient0);
+  glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse0);
+  glLightfv(GL_LIGHT0, GL_SPECULAR, specular0);
+  glEnable(GL_LIGHT1);
+  glLightfv(GL_LIGHT1, GL_POSITION, light1_pos);
+  glLightfv(GL_LIGHT1, GL_AMBIENT, ambient1);
+  glLightfv(GL_LIGHT1, GL_DIFFUSE, diffuse1);
+  glLightfv(GL_LIGHT1, GL_SPECULAR, specular1);
+  GLfloat ambient[] = {1.0, 0.0, 0.0, 1.0};
+  GLfloat diffuse[] = {1.0, 0.8, 0.0, 1.0};
+  GLfloat specular[] = {1.0, 1.0, 1.0, 1.0};
+  GLfloat shine = 100.0;
+  glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
+  glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+  glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
+  glMaterialf(GL_FRONT, GL_SHININESS, shine); 
+  
+  if (firstrun) {
+    for (int patch = 0; patch < patches.size(); patch++) {
+      //for (int patch = 0; patch < 1; patch++) {
+      vector<vector<vector<float> > > currPatch = patches[patch];
+      vector<vector<float> > interp1 = beezerpatch(currPatch, 0, 0);
+      vector<vector<float> > interp2 = beezerpatch(currPatch, 1, 0);
+      vector<vector<float> > interp3 = beezerpatch(currPatch, 0, 1);
+      vector<vector<float> > interp4 = beezerpatch(currPatch, 1, 1);
       glBegin(GL_TRIANGLES);
+      //vertex normal uv vertex normal uv vertex normal uv
+      vector<vector<vector<float> > > triangle1, triangle2;
+      vector<float> uv1, uv2, uv3, uv4;
+      uv1.push_back(0);
+      uv1.push_back(0);
+      uv2.push_back(1);
+      uv2.push_back(0);
+      uv3.push_back(0);
+      uv3.push_back(1);
+      uv4.push_back(1);
+      uv4.push_back(1);
+      interp1.push_back(uv1);
+      interp2.push_back(uv2);
+      interp3.push_back(uv3);
+      interp4.push_back(uv4);
+      triangle1.push_back(interp1);
+      triangle1.push_back(interp2);
+      triangle1.push_back(interp4);
+      triangle2.push_back(interp4);
+      triangle2.push_back(interp3);
+      triangle2.push_back(interp1);
+      triangle1 = triangulate(triangle1, currPatch);
+      triangle2 = triangulate(triangle2, currPatch);
+      triangliminations.push_back(triangle1);
+      triangliminations.push_back(triangle2);
+      for(int kk = 0; kk < triangle1.size(); kk++) {
+	glNormal3fv(floady(triangle1[kk][1]));
+	glVertex3fv(floady(triangle1[kk][0]));
+      }
+      for(int l = 0; l < triangle2.size(); l++) {
+	glNormal3fv(floady(triangle2[l][1]));
+	glVertex3fv(floady(triangle2[l][0]));
+      }
+      glEnd();
     }
-    //vertex normal uv vertex normal uv vertex normal uv
-    vector<vector<vector<float> > > triangle1, triangle2;
-    vector<float> uv1, uv2, uv3, uv4;
-    uv1.push_back(0);
-    uv1.push_back(0);
-    uv2.push_back(1);
-    uv2.push_back(0);
-    uv3.push_back(0);
-    uv3.push_back(1);
-    uv4.push_back(1);
-    uv4.push_back(1);
-    interp1.push_back(uv1);
-    interp2.push_back(uv2);
-    interp3.push_back(uv3);
-    interp4.push_back(uv4);
-    triangle1.push_back(interp1);
-    triangle1.push_back(interp2);
-    triangle1.push_back(interp4);
-    triangle2.push_back(interp4);
-    triangle2.push_back(interp3);
-    triangle2.push_back(interp1);
-    triangle1 = triangulate(triangle1, currPatch);
-    triangle2 = triangulate(triangle2, currPatch);
-    //cout << "todraw tri1: ";
-    //printvectarray(triangle1);
-    //cout << "tordraw trei2: ";
-    //printvectarray(triangle2);
-    for(int kk = 0; kk < triangle1.size(); kk++) {
-      glNormal3fv(floady(triangle1[kk][1]));
-      glVertex3fv(floady(triangle1[kk][0]));
-      triangles++;
-    }
-    for(int l = 0; l < triangle2.size(); l++) {
-      glNormal3fv(floady(triangle2[l][1]));
-      glVertex3fv(floady(triangle2[l][0]));
-      triangles++;
+    firstrun = 0;
+  } else {
+    for (int t = 0; t < triangliminations.size(); t+=2) {
+      vector<vector<vector<float> > > friangle1, friangle2;
+      friangle1 = triangliminations[t];
+      friangle2 = triangliminations[t+1];
+      if (wireframe) {
+	glBegin(GL_LINES);
+	glVertex3fv(floady(friangle1[0][0]));
+	glVertex3fv(floady(friangle1[1][0]));
+	glVertex3fv(floady(friangle1[1][0]));
+	glVertex3fv(floady(friangle1[2][0]));
+	glVertex3fv(floady(friangle1[2][0]));
+	glVertex3fv(floady(friangle1[0][0]));
+	
+	glVertex3fv(floady(friangle2[0][0]));
+	glVertex3fv(floady(friangle2[1][0]));
+	glVertex3fv(floady(friangle2[1][0]));
+	glVertex3fv(floady(friangle2[2][0]));
+	glVertex3fv(floady(friangle2[2][0]));
+	glVertex3fv(floady(friangle2[0][0]));
+      } else {
+	glBegin(GL_TRIANGLES);
+	for (int kk = 0; kk < friangle1.size(); kk++) {
+	  glNormal3fv(floady(friangle1[kk][1]));
+	  glVertex3fv(floady(friangle1[kk][0]));
+	}
+	for (int l = 0; l < friangle2.size(); l++) {
+	  glNormal3fv(floady(friangle2[l][1]));
+	  glVertex3fv(floady(friangle2[l][0]));
+	}
+      }
     }
     glEnd();
-    /*glBegin(GL_LINES);
-      glVertex3fv(floady(interp1[0]));
-      glVertex3fv(floady(pluss(interp1[0], times(interp1[1], 0.15))));
-      glVertex3fv(floady(interp2[0]));
-      glVertex3fv(floady(pluss(interp2[0], times(interp2[1], 0.15))));
-      glVertex3fv(floady(interp3[0]));
-      glVertex3fv(floady(pluss(interp3[0], times(interp3[1], 0.15))));	
-      glVertex3fv(floady(interp4[0]));
-      glVertex3fv(floady(pluss(interp4[0], times(interp4[1], 0.15))));
-      glEnd();*/
   }
-  cout << "Triangles: " << triangles/3;
   glFlush();
   glutSwapBuffers();					// swap buffers (we earlier set float buffer)
 }
 
 //each element in triangle consists of a vertex, a normal, and a u-v cordinate, every three elements consists of a triangle
 vector<vector<vector<float> > > triangulate(vector<vector<vector<float> > > triangle, vector<vector<vector<float> > > patch) {
-  ////cout << "Triagnultaing: \n";
-  //printvectarray(triangle);
   vector<vector<vector<float> > > result;
   vector<vector<float> > v1 = triangle[0];
   vector<vector<float> > v2 = triangle[1];
@@ -375,14 +383,12 @@ vector<vector<vector<float> > > triangulate(vector<vector<vector<float> > > tria
   }
 
   if (f1 && f2 && f3) {
-    //cout << 0 << "\n";
     result.push_back(v1);
     result.push_back(v2);
     result.push_back(v3);
   }
 
   if (f1 && f2 && !f3) {
-    //cout << 1 << "\n";
     vector<vector<float> > new3 = beezerpatch(patch, u23, v23);
     vector<float> new3uv;
     new3uv.push_back(u23);
@@ -407,7 +413,6 @@ vector<vector<vector<float> > > triangulate(vector<vector<vector<float> > > tria
   }
 
   if (f1 && !f2 && f3) {
-    //cout << 2 << "\n";
     vector<vector<float> > new2 = beezerpatch(patch, u13, v13);
     vector<float> new2uv;
     new2uv.push_back(u13);
@@ -432,7 +437,6 @@ vector<vector<vector<float> > > triangulate(vector<vector<vector<float> > > tria
   }
 
   if (!f1 && f2 && f3) {
-    //cout << 3 << "\n";
     vector<vector<float> > new1 = beezerpatch(patch, u12, v12);
     vector<float> new1uv;
     new1uv.push_back(u12);
@@ -457,7 +461,6 @@ vector<vector<vector<float> > > triangulate(vector<vector<vector<float> > > tria
   }
  
   if (f1 && !f2 && !f3) {
-    //cout << 4 << "\n";
     vector<vector<float> > new2 = beezerpatch(patch, u13, v13);
     vector<vector<float> > new3 = beezerpatch(patch, u23, v23);
     vector<float> new2uv;
@@ -494,7 +497,6 @@ vector<vector<vector<float> > > triangulate(vector<vector<vector<float> > > tria
   }
  
   if (!f1 && f2 && !f3) {
-    //cout << 5 << "\n";
     vector<vector<float> > new1 = beezerpatch(patch, u12, v12);
     vector<vector<float> > new3 = beezerpatch(patch, u23, v23);
     vector<float> new1uv;
@@ -531,7 +533,6 @@ vector<vector<vector<float> > > triangulate(vector<vector<vector<float> > > tria
   }
 
   if (!f1 && !f2 && f3) {
-    //cout << 6 << "\n";
     vector<vector<float> > new1 = beezerpatch(patch, u12, v12);
     vector<vector<float> > new2 = beezerpatch(patch, u13, v13);
     vector<float> new1uv;
@@ -568,7 +569,6 @@ vector<vector<vector<float> > > triangulate(vector<vector<vector<float> > > tria
   }
 
   if (!f1 && !f2 && !f3) {
-    //cout << 7 << "\n";
     vector<vector<float> > new1 = beezerpatch(patch, u12, v12);
     vector<vector<float> > new2 = beezerpatch(patch, u13, v13);
     vector<vector<float> > new3 = beezerpatch(patch, u23, v23);
@@ -615,8 +615,6 @@ vector<vector<vector<float> > > triangulate(vector<vector<vector<float> > > tria
       result.push_back(a4[tri4]);
     }
   }
-  //cout << "Triangluated ";
-  //printvectarray(result);
   return result;
 }
 
@@ -649,14 +647,6 @@ vector<vector<float> > beezercurve(vector<vector<float> > curve, float u) {
   vector<float> e = pluss(times(b, 1-u), times(c, u));
   vector<float> p = pluss(times(d, 1-u), times(e, u));
   vector<float> dpdu = times(minuss(e, d), 3);
-  /*if (dpdu[0] == 0 && dpdu[1] == 0 && dpdu[2] == 0) {
-    cout << "Horrror\n";
-    printvect(e);
-    printvect(d);
-    cout << u << "\n";
-    printvectvect(curve);
-    cout << "/horror\n\n";
-    }*/
   vector<vector<float> > result;
   result.push_back(p);
   result.push_back(dpdu);
@@ -696,36 +686,9 @@ vector<vector<float> >beezerpatch(vector<vector<vector<float> > > patch, float u
   ucurve.push_back(beezercurve(col2, v+randy)[0]);
   ucurve.push_back(beezercurve(col3, v+randy)[0]);
   ucurve.push_back(beezercurve(col4, v+randy)[0]);
-  ///cout << "V";
   vector<vector<float> > pdpdv = beezercurve(vcurve, v);
-  ///cout << "U";
   vector<vector<float> > pdpdu = beezercurve(ucurve, u);
-  ///cout << "free\n";
   vector<float> n = normalize(cross(pdpdu[1], pdpdv[1]));
-  //cout << "lol";
-  //printvect(n);
-  if (n[0] == 0 && n[1] == 0 && n[2] == 0) {
-    cout << "Diagnostics\n\n";
-    cout << "Patch:";
-    printvectarray(patch);
-    cout << "\nCol1: ";
-    printvectvect(col1);
-    cout << "\ncol2: ";
-    printvectvect(col2);
-    cout << "\ncol3: ";
-    printvectvect(col3);
-    cout << "\ncol4: ";
-    printvectvect(col4);
-    cout << "\nvcurve: ";
-    printvectvect(vcurve);
-    cout << "ucurve";
-    printvectvect(ucurve);
-    cout << "PdPdu1:";
-    printvect(pdpdu[1]);
-    cout << "PdPdv1:";
-    printvect(pdpdv[1]);
-    cout << "\n";
-  }
   draw.push_back(pdpdu[0]);
   draw.push_back(n);
   return draw;
@@ -758,7 +721,6 @@ void initScene(int argc, char *argv[]) {
   camerax = lookatx/2;
   cameray = 2 * (lookatx + lookaty + lookatz);
   cameraz = 9;
-  cout << camerax << " " << cameray << " " << cameraz;
 }
 
 int main(int argc, char *argv[]) {
@@ -770,7 +732,6 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-  //cout << adaptive << "\n";
   ifstream file(argv[1]);
   step = atof(argv[2]);
   int paches;
@@ -805,7 +766,6 @@ int main(int argc, char *argv[]) {
   lookatx /= (16.0 * paches);
   lookaty /= (16.0 * paches);
   lookatz /= (16.0 * paches);
-  cout << lookatx << " " << lookaty << " " << lookatz << "\n";
   //This initializes glut
  
   initScene(argc, argv);
@@ -900,25 +860,19 @@ vector<float> cross(vector<float> u, vector<float> v) {
 }
 
 vector<float> normalize(vector<float> v) {
-  //cout << "normalizen: ";
-  //printvect(v);
   float norm = 0;
   vector<float> result;
   for (int k = 0; k < v.size(); k++) {
     norm += v[k] * v[k];
   }
   if (norm == 0) {
-    cout << "Tragedy: nomrmalized a zero\n";
+    cout << "Tragedy: nomrmalized a zero vector (here be dragons)\n";
     norm = 1;
   }
-  //cout << "\nnorm " << norm << "\n";
-  //printvect(v);
   norm = sqrt(norm);
   result.push_back(v[0] / norm);
   result.push_back(v[1] / norm);
   result.push_back(v[2] / norm);
-  //cout << "Normalizeded ";
-  //printvect(result);
   return result;
 }
 
